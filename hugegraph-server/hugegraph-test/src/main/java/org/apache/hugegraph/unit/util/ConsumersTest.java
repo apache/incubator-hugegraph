@@ -24,8 +24,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.hugegraph.exception.HugeException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.Consumers;
 import org.junit.Test;
@@ -362,6 +365,85 @@ public class ConsumersTest {
             Assert.assertEquals(2, reads.get());
             Assert.assertEquals(1, processed.get());
         } finally {
+            worker.shutdownNow();
+            Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test(timeout = 15000)
+    public void testAwaitPreservesCallerInterruptAndCancelsWorker() throws Throwable {
+        this.checkAwaitInterrupt(false);
+    }
+
+    @Test(timeout = 15000)
+    public void testAwaitInterruptedWhileQueueingEndCancelsWorker() throws Throwable {
+        this.checkAwaitInterrupt(true);
+    }
+
+    private void checkAwaitInterrupt(boolean fullQueue) throws Throwable {
+        ExecutorService worker = Executors.newFixedThreadPool(1);
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        CountDownLatch completed = new CountDownLatch(1);
+        AtomicBoolean workerInterrupted = new AtomicBoolean();
+        AtomicBoolean callerInterrupted = new AtomicBoolean();
+        AtomicReference<Throwable> failure = new AtomicReference<>();
+        Consumers<Integer> consumers = new Consumers<>(worker, value -> {
+            entered.countDown();
+            try {
+                release.await();
+            } catch (InterruptedException e) {
+                workerInterrupted.set(true);
+                Thread.currentThread().interrupt();
+            }
+        }, completed::countDown, 1);
+        Thread caller = new Thread(() -> {
+            try {
+                consumers.await();
+            } catch (Throwable e) {
+                failure.set(e);
+                callerInterrupted.set(Thread.currentThread().isInterrupted());
+            }
+        }, "consumer-await-interrupt-test");
+        try {
+            consumers.start("await-interrupt");
+            consumers.provide(1);
+            Assert.assertTrue(entered.await(5L, TimeUnit.SECONDS));
+            if (fullQueue) {
+                consumers.provide(2);
+                consumers.provide(3);
+            }
+            caller.start();
+            // Keep the worker blocked until the caller reaches the selected await phase.
+            String waitingClass = fullQueue ? "java.util.concurrent.ArrayBlockingQueue" :
+                                              CountDownLatch.class.getName();
+            String waitingMethod = fullQueue ? "offer" : "await";
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
+            boolean awaiting = false;
+            while (System.nanoTime() < deadline) {
+                awaiting = Arrays.stream(caller.getStackTrace()).anyMatch(frame ->
+                        frame.getClassName().equals(waitingClass) &&
+                        frame.getMethodName().equals(waitingMethod));
+                if (awaiting) {
+                    break;
+                }
+                Thread.sleep(1L);
+            }
+            Assert.assertTrue("Caller did not reach the expected await phase", awaiting);
+            caller.interrupt();
+            caller.join(5000L);
+            Assert.assertFalse(caller.isAlive());
+            Assert.assertTrue(failure.get() instanceof HugeException);
+            Assert.assertTrue(failure.get().getCause() instanceof InterruptedException);
+            Assert.assertTrue(callerInterrupted.get());
+            Assert.assertTrue(completed.await(5L, TimeUnit.SECONDS));
+            Assert.assertTrue(workerInterrupted.get());
+            worker.shutdown();
+            Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
+        } finally {
+            release.countDown();
+            caller.interrupt();
+            caller.join(5000L);
             worker.shutdownNow();
             Assert.assertTrue(worker.awaitTermination(5L, TimeUnit.SECONDS));
         }

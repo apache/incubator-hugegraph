@@ -146,12 +146,24 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
                 except OSError:
                     pass  # The slave closes when the helper exits.
 
-        def ready(self, pattern=r"\[arthas@"):
+        def expect(self, pattern, offset=0):
             deadline = time.monotonic() + 15
-            while not re.search(pattern, self.output):
+            while True:
                 self.drain()
+                match = re.search(pattern, self.output[offset:])
+                if match:
+                    return offset + match.end()
                 assert self.poll() is None and time.monotonic() < deadline, self.output
                 time.sleep(0.02)
+
+        def ready(self, offset=0):
+            return self.expect(r"\[arthas@\d+\]\$ ", offset)
+
+        def command(self, command, expected):
+            offset = len(self.output)
+            os.write(self.master, (command + "\n").encode())
+            offset = self.expect(expected, offset)
+            self.ready(offset)
 
         def wait(self, timeout=30):
             deadline = time.monotonic() + timeout
@@ -338,12 +350,11 @@ with tempfile.TemporaryDirectory(prefix="arthas-test-") as work:
             assert "credentials rejected" in wrong and "agent left running" in wrong, wrong
             wait_port(True)
             quoted_password = "'" + password.replace("'", "'\\''") + "'"
-            # Wait for each native-client response before sending the next command;
-            # pasted lines can be consumed while the terminal is changing prompts.
-            os.write(interactive.master, f'auth --username "operator name" {quoted_password}\n'.encode())
-            interactive.ready(r"(?s)Authentication result: true.*\[arthas@")
-            os.write(interactive.master, b"version\n")
-            interactive.ready(r"(?s)[\r\n]4\.1\.5\s*[\r\n].*\[arthas@")
+            # The terminal can discard queued input while an earlier command is running.
+            # Wait for its result and the next complete prompt before sending another command.
+            interactive.command(f'auth --username "operator name" {quoted_password}',
+                                r"Authentication result: true, username: operator name")
+            interactive.command("version", r"[\r\n]4\.1\.5\s*[\r\n]")
             os.write(interactive.master, b"quit\n")
             assert interactive.wait(45) == 0, interactive.output
             assert re.search(r"[\r\n]4\.1\.5\s*[\r\n]", interactive.output), interactive.output

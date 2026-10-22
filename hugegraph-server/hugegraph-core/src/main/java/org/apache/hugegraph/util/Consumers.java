@@ -284,6 +284,7 @@ public final class Consumers<V> {
                     // Stop wakes consumers through its state, without another END token.
                 }
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 LOG.warn("Interrupted while enqueue", e);
             }
         }
@@ -298,6 +299,7 @@ public final class Consumers<V> {
                 putQueueEnd();
                 this.latch.await();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 String error = "Interrupted while waiting for consumers";
                 for (Future f : this.runningFutures) {
                     f.cancel(true);

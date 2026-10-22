@@ -24,6 +24,10 @@ import org.apache.hugegraph.store.core.store.meta.PartitionMetaCodecTest;
 import org.apache.hugegraph.store.node.listener.PdConfigureListenerMemoryOverrideTest;
 import org.apache.hugegraph.store.options.RaftRocksdbOptionsTest;
 import org.apache.hugegraph.store.options.RocksdbMemoryBudgetTest;
+import org.apache.hugegraph.store.util.FileObjectIteratorTest;
+import org.apache.hugegraph.store.util.FilterIteratorCleanupTest;
+import org.apache.hugegraph.store.util.SortShuffleSerializerTest;
+import org.apache.hugegraph.store.util.SortShuffleTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -50,6 +54,10 @@ import lombok.extern.slf4j.Slf4j;
 //        HgBusinessImplTest.class
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+        FileObjectIteratorTest.class,
+        FilterIteratorCleanupTest.class,
+        SortShuffleSerializerTest.class,
+        SortShuffleTest.class,
         HeartbeatShutdownTest.class,
         MetricSessionTest.class,
         HgSnapshotHandlerTest.class,

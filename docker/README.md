@@ -392,7 +392,8 @@ To confirm a seccomp restriction, retry the same container with
 `--security-opt seccomp=unconfined`. Use a compatible Docker/runtime seccomp profile
 for normal operation. EPERM indicates a security denial, not a process-limit
 failure. If the JVM instead reports EAGAIN, inspect process/thread limits and
-use `--ulimit nproc=65535:65535` if appropriate. A generic
+use `--ulimit nproc=65535:65535` if appropriate. The startup helper also recognizes
+`pthread_create failed (EAGAIN)` without an accompanying GC worker error. A generic
 `Cannot create worker GC thread` message alone does not distinguish seccomp
 denial from insufficient memory or process/thread limits. Check the container's
 memory budget and the preceding JVM output. The entrypoint changes neither

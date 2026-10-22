@@ -145,9 +145,11 @@ public class UnionFilterIterator<T extends Serializable> implements ScanIterator
 
     @Override
     public void close() {
-        this.iterator.close();
-        if (this.sortShuffle != null) {
-            this.sortShuffle.close();
+        try (SortShuffle<T> shuffle = this.sortShuffle) {
+            this.iterator.close();
+        } finally {
+            this.sortShuffle = null;
+            this.map.clear();
         }
     }
 

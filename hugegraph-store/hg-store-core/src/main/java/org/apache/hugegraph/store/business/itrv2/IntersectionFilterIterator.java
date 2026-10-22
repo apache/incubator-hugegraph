@@ -150,8 +150,12 @@ public class IntersectionFilterIterator implements ScanIterator {
 
     @Override
     public void close() {
-        this.iterator.close();
-        this.map.clear();
+        try (SortShuffle<?> shuffle = this.sortShuffle) {
+            this.iterator.close();
+        } finally {
+            this.sortShuffle = null;
+            this.map.clear();
+        }
     }
 
     @Override

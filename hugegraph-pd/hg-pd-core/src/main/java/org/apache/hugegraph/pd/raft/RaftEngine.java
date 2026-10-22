@@ -103,7 +103,7 @@ public class RaftEngine {
     private volatile int alivePeerCount = -1;
     private ScheduledExecutorService alivePeersRefresher;
 
-    public RaftEngine() {
+    private RaftEngine() {
         this.stateMachine = new RaftStateMachine();
     }
 

@@ -31,6 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ConfigService implements RaftStateListener {
 
+    // PD service facades share one metadata store, but have separate ConfigService instances.
+    private static final Object GRAPH_SPACE_LOCK = new Object();
+
     private ConfigMetaStore meta;
     private PDConfig pdConfig;
 
@@ -64,9 +67,35 @@ public class ConfigService implements RaftStateListener {
     }
 
     public Metapb.GraphSpace setGraphSpace(Metapb.GraphSpace graphSpace) throws PDException {
-        return this.meta.setGraphSpace(graphSpace.toBuilder()
-                                                 .setTimestamp(System.currentTimeMillis())
-                                                 .build());
+        synchronized (GRAPH_SPACE_LOCK) {
+            return this.meta.setGraphSpace(graphSpace.toBuilder()
+                                                     .setTimestamp(System.currentTimeMillis())
+                                                     .build());
+        }
+    }
+
+    /**
+     * Update a GB limit while preserving the latest usage, including updates from other facades.
+     */
+    public Metapb.GraphSpace setGraphSpaceLimit(Metapb.GraphSpace graphSpace) throws PDException {
+        synchronized (GRAPH_SPACE_LOCK) {
+            long usedSize = this.graphSpaceBuilder(graphSpace.getName()).getUsedSize();
+            return this.setGraphSpace(graphSpace.toBuilder().setUsedSize(usedSize).build());
+        }
+    }
+
+    /**
+     * Refresh usage in KB without overwriting a concurrent limit update.
+     */
+    public Metapb.GraphSpace setGraphSpaceUsage(String name, long usedSize) throws PDException {
+        synchronized (GRAPH_SPACE_LOCK) {
+            return this.setGraphSpace(this.graphSpaceBuilder(name).setUsedSize(usedSize).build());
+        }
+    }
+
+    private Metapb.GraphSpace.Builder graphSpaceBuilder(String name) throws PDException {
+        Metapb.GraphSpace current = this.meta.getGraphSpaceExact(name);
+        return current == null ? Metapb.GraphSpace.newBuilder().setName(name) : current.toBuilder();
     }
 
     /**

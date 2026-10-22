@@ -37,6 +37,7 @@ import org.apache.hugegraph.backend.store.rocksdb.RocksDBSnapshotRestoreTest;
 import org.apache.hugegraph.backend.tx.GraphIndexTransactionTest;
 import org.apache.hugegraph.backend.tx.GraphTransactionTest;
 import org.apache.hugegraph.core.memory.MemoryManageTest;
+import org.apache.hugegraph.job.algorithm.AlgorithmConsumerLifecycleTest;
 import org.apache.hugegraph.meta.EtcdMetaDriverTest;
 import org.apache.hugegraph.meta.MetaManagerSchemaCacheClearEventTest;
 import org.apache.hugegraph.meta.managers.AuthMetaManagerTest;
@@ -44,6 +45,7 @@ import org.apache.hugegraph.opencypher.CypherOpProcessorTest;
 import org.apache.hugegraph.store.client.OrderedScanSecurityTest;
 import org.apache.hugegraph.tinkerpop.HugeGraphTestInfrastructureTest;
 import org.apache.hugegraph.traversal.optimize.TraversalUtilOptimizeTest;
+import org.apache.hugegraph.task.TaskCallableTest;
 import org.apache.hugegraph.unit.api.auth.LoginAPITest;
 import org.apache.hugegraph.unit.api.cypher.CypherErrorTest;
 import org.apache.hugegraph.unit.api.cypher.CypherTemporalFunctionTest;
@@ -130,6 +132,7 @@ import org.apache.hugegraph.unit.serializer.TextSerializerTest;
 import org.apache.hugegraph.unit.store.RamIntObjectMapTest;
 import org.apache.hugegraph.unit.traversal.ConcurrentVerticesConsumerTest;
 import org.apache.hugegraph.unit.traversal.ShortestPathTraverserTest;
+import org.apache.hugegraph.unit.util.AlgorithmConsumersTest;
 import org.apache.hugegraph.unit.util.CompressUtilTest;
 import org.apache.hugegraph.unit.util.ConsumersTest;
 import org.apache.hugegraph.unit.util.JsonUtilTest;
@@ -248,6 +251,7 @@ import org.junit.runners.Suite;
         SystemSchemaStoreTest.class,
         ServerInfoManagerTest.class,
         TaskSchedulerServerInfoTest.class,
+        TaskCallableTest.class,
         HugeGraphAuthProxyTest.class,
         SchemaElementTest.class,
         HugeGraphTestInfrastructureTest.class,
@@ -289,6 +293,8 @@ import org.junit.runners.Suite;
 
         /* utils */
         ConsumersTest.class,
+        AlgorithmConsumersTest.class,
+        AlgorithmConsumerLifecycleTest.class,
         VersionTest.class,
         JsonUtilTest.class,
         StringEncodingTest.class,
