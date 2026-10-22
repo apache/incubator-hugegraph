@@ -292,6 +292,7 @@ public class CloudStorageEventListenerTest {
         try {
             // Pass the path form, as RocksDB does in production.
             l.onTableFileDeleted(dbDir.toString(), "default", dbDir.resolve("000001.sst").toString());
+            l.processDeferredSstDeletes();
             assertEquals("00001",
                          observedDbName.get(),
                          "delete guard/metadata sync must key off the resolved logical name");
@@ -433,6 +434,7 @@ public class CloudStorageEventListenerTest {
 
         l.onTableFileDeleted("hgstore-metadata", "default",
                              DATA_ROOT + "/hgstore-metadata/000008.sst");
+        l.processDeferredSstDeletes();
 
         assertEquals(1, provider.deletes.size());
         assertEquals("hgstore-metadata/000008.sst", provider.deletes.get(0));
@@ -1421,7 +1423,7 @@ public class CloudStorageEventListenerTest {
      */
     static class OrderingListener extends CloudStorageEventListener {
 
-        final List<String> callOrder = new ArrayList<>();
+        final List<String> callOrder = Collections.synchronizedList(new ArrayList<>());
         private final boolean syncResult;
 
         OrderingListener(CloudStorageProvider provider, String dataRoot, CloudSyncTracker tracker,
@@ -1482,6 +1484,7 @@ public class CloudStorageEventListenerTest {
         };
 
         l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/000001.sst");
+        l.processDeferredSstDeletes();
         return l;
     }
 
@@ -1501,8 +1504,10 @@ public class CloudStorageEventListenerTest {
                 new OrderingListener(provider, DATA_ROOT, tracker, /* syncResult */ false);
 
         l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/000001.sst");
+        l.processDeferredSstDeletes();
 
-        assertEquals(List.of("sync"), l.callOrder, "sync must have been called");
+        // The held delete is retried in the background, so sync may have been attempted again.
+        assertFalse(l.callOrder.isEmpty(), "sync must have been called");
         assertTrue(provider.deletes.isEmpty(), "SST must NOT be deleted when metadata sync fails");
     }
 
@@ -1583,6 +1588,7 @@ public class CloudStorageEventListenerTest {
 
         try {
             l.onTableFileDeleted("db0", "default", oldSst.toString());
+            l.processDeferredSstDeletes();
 
             assertTrue(provider.deletes.isEmpty(),
                        "Delete must be held when live-set confirmation is stale");
@@ -1606,7 +1612,7 @@ public class CloudStorageEventListenerTest {
         provider.putRemoteFile(sst1Remote, "sst1".getBytes());
 
         CloudSyncTracker tracker = new CloudSyncTracker();
-        List<String> syncCalls = new ArrayList<>();
+        List<String> syncCalls = Collections.synchronizedList(new ArrayList<>());
         // Compaction output 000010.sst is live but neither confirmed nor present locally / in cloud,
         // so the live set is not durable.
         CloudStorageEventListener l = new CloudStorageEventListener(provider,
@@ -1625,6 +1631,7 @@ public class CloudStorageEventListenerTest {
         };
 
         l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/000001.sst");
+        l.processDeferredSstDeletes();
 
         assertTrue(provider.deletes.isEmpty(),
                    "Superseded SST must NOT be deleted while the live set is not durable in cloud");
@@ -2071,6 +2078,195 @@ public class CloudStorageEventListenerTest {
         }
     }
 
+    /** Keeps the tombstone in {@code remoteFiles} so its presence and removal can be asserted. */
+    static class TombstoneTrackingProvider extends ToggleablePurgeProvider {
+
+        volatile boolean failTombstoneDelete;
+
+        @Override
+        public synchronized void uploadFile(String localPath, String remoteKey) throws IOException {
+            super.uploadFile(localPath, remoteKey);
+            if (remoteKey.endsWith(CloudStorageEventListener.DB_TOMBSTONE_SUFFIX)) {
+                remoteFiles.put(remoteKey, "deleted".getBytes());
+            }
+        }
+
+        @Override
+        public synchronized void deleteFile(String remoteKey) throws IOException {
+            if (failTombstoneDelete
+                && remoteKey.endsWith(CloudStorageEventListener.DB_TOMBSTONE_SUFFIX)) {
+                throw new IOException("simulated tombstone delete failure");
+            }
+            super.deleteFile(remoteKey);
+            remoteFiles.remove(remoteKey);
+        }
+
+        @Override
+        public synchronized boolean fileExists(String remoteKey) throws IOException {
+            return super.fileExists(remoteKey);
+        }
+
+        @Override
+        public synchronized int deletePrefix(String remoteDirPrefix) throws IOException {
+            return super.deletePrefix(remoteDirPrefix);
+        }
+    }
+
+    /**
+     * A tombstone that outlived its pending-delete marker would make a later open purge the live
+     * objects of a DB re-created at the same prefix. So a failed tombstone delete must keep the
+     * marker, and with it the open blocked, until the tombstone is gone.
+     */
+    @Test
+    public void failedTombstoneDelete_keepsMarker_andBlocksOpenUntilItSucceeds() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-tombstone-delete-fails");
+        Path dbDir = tmpRoot.resolve("g3");
+        Files.createDirectories(dbDir);
+        TombstoneTrackingProvider provider = new TombstoneTrackingProvider();
+        provider.putRemoteFile("g3/000001.sst", "old".getBytes());
+        CloudStorageEventListener l =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), false);
+        try {
+            provider.failTombstoneDelete = true;
+            l.onDBDeleteBegin("g3", dbDir.toString());
+            l.onDBDeleted("g3", dbDir.toString());
+            assertFalse(provider.remoteFiles.containsKey("g3/000001.sst"), "prefix is purged");
+            assertTrue(provider.remoteFiles.containsKey("g3_DELETED"), "tombstone delete failed");
+            assertTrue(l.hasPendingDeleteMarker("g3"),
+                       "the marker must outlive a tombstone whose delete failed");
+
+            try {
+                l.onDBOpening("g3", dbDir.toString());
+                fail("Open must be blocked while the tombstone cannot be deleted");
+            } catch (IllegalStateException expected) {
+                assertTrue(expected.getMessage().contains("g3"), expected.getMessage());
+            }
+
+            provider.failTombstoneDelete = false;
+            l.onDBOpening("g3", dbDir.toString());
+            assertFalse(provider.remoteFiles.containsKey("g3_DELETED"));
+            assertFalse(l.hasPendingDeleteMarker("g3"));
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    /**
+     * Without startup hydration the DB still uploads into its prefix, so a leftover tombstone (its
+     * local marker lost, e.g. with the disk) must be resolved at open, and every confirmation for
+     * the purged objects dropped so they are re-uploaded before the next metadata publish.
+     */
+    @Test
+    public void onDBOpening_withHydrationDisabled_purgesTombstonedPrefix_andClearsTracker()
+            throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-open-tombstone-no-hydration");
+        Path dbDir = tmpRoot.resolve("g4");
+        Files.createDirectories(dbDir);
+        TombstoneTrackingProvider provider = new TombstoneTrackingProvider();
+        provider.putRemoteFile("g4/000001.sst", "deleted-generation".getBytes());
+        provider.putRemoteFile("g4_DELETED", "deleted".getBytes());
+        CloudSyncTracker tracker = new CloudSyncTracker();
+        tracker.markConfirmed("g4", dbDir.resolve("000001.sst").toString());
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+                provider, List.of(tmpRoot.toString()), false, 0L, null, tracker);
+        try {
+            l.onDBOpening("g4", dbDir.toString());
+
+            assertFalse(provider.remoteFiles.containsKey("g4/000001.sst"),
+                        "stale objects of the deleted generation must be purged");
+            assertFalse(provider.remoteFiles.containsKey("g4_DELETED"),
+                        "the tombstone must be removed before the DB can write to the prefix");
+            assertEquals(0L, tracker.confirmedCount("g4"),
+                         "confirmations for purged objects must be dropped");
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    /**
+     * The destroy guard deletes a stale directory of a DB that was re-created at another
+     * directory. That delete must purge only the stale prefix and keep the live copy's state.
+     */
+    @Test
+    public void onDBDeleted_ofStaleDir_keepsStateOfTheSameDbLiveElsewhere() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-delete-stale-dir");
+        Path staleDir = Files.createDirectories(tmpRoot.resolve("g5"));
+        Path liveDir = Files.createDirectories(tmpRoot.resolve("g5_2"));
+        TombstoneTrackingProvider provider = new TombstoneTrackingProvider();
+        provider.putRemoteFile("g5/000001.sst", "stale".getBytes());
+        provider.putRemoteFile("g5_2/000002.sst", "live".getBytes());
+        CloudSyncTracker tracker = new CloudSyncTracker();
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+                provider, List.of(tmpRoot.toString()), false, 0L, null, tracker);
+        try {
+            l.onDBOpening("g5", staleDir.toString());
+            l.onDBOpening("g5", liveDir.toString());
+            tracker.markConfirmed("g5", liveDir.resolve("000002.sst").toString());
+
+            l.onDBDeleteBegin("g5", staleDir.toString());
+            l.onDBDeleted("g5", staleDir.toString());
+
+            assertFalse(provider.remoteFiles.containsKey("g5/000001.sst"),
+                        "the stale directory's prefix must be purged");
+            assertTrue(provider.remoteFiles.containsKey("g5_2/000002.sst"),
+                       "the live directory's prefix must not be touched");
+            assertEquals(1L, tracker.confirmedCount("g5"),
+                         "the live copy's confirmations must survive the stale delete");
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    /**
+     * The delete callback runs on a RocksDB background thread, so it must not do cloud I/O there,
+     * and the deletes one compaction produces must share a single metadata publish.
+     */
+    @Test
+    public void onTableFileDeleted_runsOffCallerThread_withOnePublishPerDbPerPass()
+            throws Exception {
+        CapturingProvider provider = new CapturingProvider();
+        AtomicBoolean metadataHealthy = new AtomicBoolean(false);
+        AtomicInteger healthyPublishes = new AtomicInteger();
+        Thread caller = Thread.currentThread();
+        AtomicBoolean publishedOnCaller = new AtomicBoolean(false);
+        CloudStorageEventListener l = new CloudStorageEventListener(provider, List.of(DATA_ROOT),
+                false, 0L, null, new CloudSyncTracker(), null,
+                CloudStorageEventListener.DEFAULT_METADATA_SYNC_DEBOUNCE_MS) {
+            @Override
+            List<LiveSstFile> currentLiveSstFiles(String dbName) {
+                return List.of();
+            }
+
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                if (Thread.currentThread() == caller) {
+                    publishedOnCaller.set(true);
+                }
+                if (!metadataHealthy.get()) {
+                    return false;
+                }
+                healthyPublishes.incrementAndGet();
+                return true;
+            }
+        };
+        try {
+            for (int i = 1; i <= 3; i++) {
+                l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/00000" + i + ".sst");
+            }
+            metadataHealthy.set(true);
+            waitForCondition(() -> provider.deletes.size() == 3,
+                             "all superseded SSTs must be deleted once metadata publishes");
+
+            assertFalse(publishedOnCaller.get(), "no cloud I/O on the RocksDB callback thread");
+            assertEquals(1, healthyPublishes.get(), "one metadata publish covers all deletes");
+        } finally {
+            l.close();
+        }
+    }
+
     @Test
     public void truncatePurgeRetry_isAbandonedOnceTheDbWritesAgain() throws Exception {
         Path tmpRoot = Files.createTempDirectory("hgstore-test-truncate-retry");
@@ -2173,6 +2369,7 @@ public class CloudStorageEventListenerTest {
             // Native events can arrive between onDBOpening and onDBCreated, with the path form.
             l.onDBOpening("logical-g6", dbDir.toString());
             l.onTableFileDeleted(dbDir.toString(), "default", dbDir.resolve("000001.sst").toString());
+            l.processDeferredSstDeletes();
 
             assertEquals("logical-g6", observed.get());
         } finally {
@@ -2232,6 +2429,118 @@ public class CloudStorageEventListenerTest {
         } finally {
             l.close();
         }
+    }
+
+    @Test
+    public void newestRestorableSibling_ordersVersions_andSkipsUnrestorableDirs() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-siblings");
+        CloudStorageEventListener l = CloudStorageTestFactory.newListener(
+                new CapturingProvider(), List.of(tmpRoot.toString()), true);
+        try {
+            // A pending-delete marker for g8_9 means that directory was destroyed.
+            l.onDBDeleteBegin("g8", tmpRoot.resolve("g8_9").toString());
+            List<String> keys = List.of(
+                    "g8/CURRENT",
+                    "g8_3/CURRENT",
+                    "g8_4/CURRENT",
+                    "g8_4_2/CURRENT",
+                    "g8_5/000001.sst",        // no CURRENT: not restorable
+                    "g8_6/CURRENT", "g8_6_DELETED", // tombstoned
+                    "g8_9/CURRENT",           // pending local delete
+                    "g80/CURRENT",            // another DB sharing the name prefix
+                    "g8_x/CURRENT");          // not a version suffix
+            assertEquals("g8_4_2", l.newestRestorableSibling("", "g8", keys));
+            assertEquals(null, l.newestRestorableSibling("", "g8", List.of("g8_5/000001.sst")));
+        } finally {
+            l.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    @Test
+    public void resolveOpenPath_redirectsOnlyWithHydrationAndAWorkingListing() throws Exception {
+        Path tmpRoot = Files.createTempDirectory("hgstore-test-resolve-open");
+        String base = tmpRoot.resolve("g9").toString();
+        CapturingProvider provider = new CapturingProvider();
+        provider.putRemoteFile("g9_5/CURRENT", "MANIFEST-000005".getBytes());
+        CloudStorageEventListener hydrating =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), true);
+        CloudStorageEventListener notHydrating =
+                CloudStorageTestFactory.newListener(provider, List.of(tmpRoot.toString()), false);
+        CloudStorageEventListener listingFails = CloudStorageTestFactory.newListener(
+                new CapturingProvider() {
+                    @Override
+                    public List<String> listFiles(String remoteDirPrefix) throws IOException {
+                        throw new IOException("simulated listing failure");
+                    }
+                }, List.of(tmpRoot.toString()), true);
+        try {
+            assertEquals(tmpRoot.resolve("g9_5").toString(), hydrating.resolveOpenPath("g9", base));
+            assertEquals(base, notHydrating.resolveOpenPath("g9", base));
+            assertEquals(base, listingFails.resolveOpenPath("g9", base));
+        } finally {
+            hydrating.close();
+            notHydrating.close();
+            listingFails.close();
+            deleteRecursively(tmpRoot.toFile());
+        }
+    }
+
+    /** Held superseded-SST deletes must not retry a failing publish faster than its backoff. */
+    @Test
+    public void heldSstDeletes_respectPerDbPublishBackoff() throws Exception {
+        AtomicInteger captures = new AtomicInteger();
+        CloudStorageEventListener l = new CloudStorageEventListener(new CapturingProvider(),
+                List.of(DATA_ROOT), false, 0L, null, new CloudSyncTracker(), null, 60_000L) {
+            @Override
+            List<LiveSstFile> currentLiveSstFiles(String dbName) {
+                return List.of();
+            }
+
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                captures.incrementAndGet();
+                return false;
+            }
+        };
+        try {
+            l.onTableFileDeleted("db-held", "default", DATA_ROOT + "/db-held/000001.sst");
+            waitForCondition(() -> l.publishFailureCount("db-held") == 1,
+                             "the first failed publish must be recorded for backoff");
+            // The delete retry ticks every 500 ms; the 1 s backoff must suppress those attempts.
+            LockSupport.parkNanos(700_000_000L);
+            assertEquals(1, captures.get(), "a held delete must not re-publish inside the backoff");
+        } finally {
+            l.close();
+        }
+    }
+
+    /**
+     * Shutdown releases every DB before the listener is closed, so a dirty DB must be published
+     * from onDBClosing, while its session is still open, rather than from close().
+     */
+    @Test
+    public void onDBClosing_publishesDirtyMetadataOnce() throws Exception {
+        List<String> syncs = Collections.synchronizedList(new ArrayList<>());
+        CloudStorageEventListener l = new CloudStorageEventListener(new CapturingProvider(),
+                List.of(DATA_ROOT), false, 0L, null, new CloudSyncTracker(), null, 60_000L) {
+            @Override
+            boolean syncMetadataSnapshotInline(CloudStorageProvider p, String dbName) {
+                syncs.add(dbName);
+                return true;
+            }
+        };
+        try {
+            l.onDBClosing("db-clean");
+            assertTrue(syncs.isEmpty(), "a DB with nothing dirty must not be published on close");
+
+            l.markMetadataDirty("db-closing");
+            l.onDBClosing("db-closing");
+            assertEquals(List.of("db-closing"), syncs);
+        } finally {
+            l.close();
+        }
+        assertEquals(List.of("db-closing"), syncs, "close() must not publish it a second time");
     }
 
     @Test

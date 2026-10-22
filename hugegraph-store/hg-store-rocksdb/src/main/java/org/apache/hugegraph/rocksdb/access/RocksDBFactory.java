@@ -394,9 +394,21 @@ public final class RocksDBFactory {
         boolean constructed = false;
         try {
             dbSession = new RocksDBSession(
-                    this.hugeConfig, dbPath, dbName, version,
-                    (name, resolvedPath) ->
-                            rocksdbChangedListeners.forEach(l -> l.onDBOpening(name, resolvedPath)));
+                    this.hugeConfig, dbPath, dbName, version, new RocksDBSession.PreOpenHook() {
+                        @Override
+                        public void beforeOpen(String name, String resolvedPath) {
+                            rocksdbChangedListeners.forEach(l -> l.onDBOpening(name, resolvedPath));
+                        }
+
+                        @Override
+                        public String resolveOpenPath(String name, String candidatePath) {
+                            String path = candidatePath;
+                            for (RocksdbChangedListener l : rocksdbChangedListeners) {
+                                path = l.resolveOpenPath(name, path);
+                            }
+                            return path;
+                        }
+                    });
             constructed = true;
         } finally {
             if (!constructed) {
@@ -507,6 +519,9 @@ public final class RocksDBFactory {
      */
     public boolean releaseGraphDB(String dbName) {
         log.info("close {} 's  rocksdb.", dbName);
+        if (dbSessionMap.containsKey(dbName)) {
+            notifyDBClosing(dbName);
+        }
         operateLock.writeLock().lock();
         try {
             RocksDBSession dbSession = dbSessionMap.get(dbName);
@@ -558,6 +573,8 @@ public final class RocksDBFactory {
         // A creation already past Phase 1 would otherwise register its session after the map is
         // cleared below; give those a bounded chance to finish (Phase 3 also re-checks `closing`).
         awaitPendingCreationsDrained();
+        // Outside the write lock: listeners may do slow I/O and read the still-open sessions.
+        new ArrayList<>(dbSessionMap.keySet()).forEach(this::notifyDBClosing);
         operateLock.writeLock().lock();
         try {
             dbSessionMap.forEach((k, v) -> {
@@ -566,6 +583,17 @@ public final class RocksDBFactory {
             dbSessionMap.clear();
         } finally {
             operateLock.writeLock().unlock();
+        }
+    }
+
+    /** Fires {@link RocksdbChangedListener#onDBClosing}; a failing listener does not stop the close. */
+    private void notifyDBClosing(String dbName) {
+        for (RocksdbChangedListener listener : rocksdbChangedListeners) {
+            try {
+                listener.onDBClosing(dbName);
+            } catch (Exception e) {
+                log.warn("onDBClosing listener failed for db={}: {}", dbName, e.getMessage());
+            }
         }
     }
 
@@ -935,6 +963,15 @@ public final class RocksDBFactory {
         }
 
         /**
+         * Called before {@link #onDBOpening} when the directory chosen for a DB holds no local DB.
+         * Returns the directory to open instead (a version-suffixed sibling with the same base
+         * name whose state the listener can restore), or {@code dbPath} to keep it.
+         */
+        default String resolveOpenPath(String dbName, String dbPath) {
+            return dbPath;
+        }
+
+        /**
          * Called immediately after a new RocksDB instance has been opened for the first time.
          *
          * <p>Implementations can use this callback to upload any SST files that already exist
@@ -972,6 +1009,15 @@ public final class RocksDBFactory {
         }
 
         /**
+         * Called before a DB is released or closed (including {@code releaseAllGraphDB()} at
+         * shutdown), while it is still registered and open, so a listener can finish work that
+         * needs a live session, such as a final metadata publish. Not called under the factory
+         * lock.
+         */
+        default void onDBClosing(String dbName) {
+        }
+
+        /**
          * Called after a new SST file has been successfully created by RocksDB.
          *
          * @param dbName   RocksDB instance name
@@ -994,7 +1040,9 @@ public final class RocksDBFactory {
         }
 
         /**
-         * Called when a get() operation returns null so listeners can attempt cloud hydration.
+         * Called when a get() fails with a RocksDB error (for example a live SST missing on local
+         * disk) so listeners can attempt cloud hydration before the read is retried once. Not
+         * called for a null result: that is a genuine key-not-found.
          *
          * @param session RocksDB session where miss happened
          * @param table   target column-family/table

@@ -1410,9 +1410,9 @@ public class CloudStorageIntegrationTest {
 
         @Override
         public List<String> listFiles(String remoteDirPrefix) {
-            String prefix = remoteDirPrefix.endsWith("/") ? remoteDirPrefix : remoteDirPrefix + "/";
+            // Plain key-prefix match, as the CloudStorageProvider contract (and S3) defines.
             return objects.keySet().stream()
-                          .filter(k -> k.startsWith(prefix))
+                          .filter(k -> k.startsWith(remoteDirPrefix))
                           .collect(Collectors.toList());
         }
 

@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -102,6 +103,16 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     @FunctionalInterface
     public interface PreOpenHook {
         void beforeOpen(String dbName, String resolvedDbPath);
+
+        /**
+         * Called when the resolved directory holds no local DB (no {@code CURRENT}), before it is
+         * created. Returns the directory to open instead, e.g. a version-suffixed sibling whose
+         * state can be restored from cloud; returning the argument keeps it. Only a sibling with
+         * the same base name that is not awaiting deletion is accepted.
+         */
+        default String resolveOpenPath(String dbName, String candidateDbPath) {
+            return candidateDbPath;
+        }
     }
 
     public RocksDBSession(HugeConfig hugeConfig, String dbDataPath, String graphName, long version) {
@@ -463,6 +474,34 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
     }
 
     /**
+     * Lets the hook move an open with no local DB to a sibling directory (for example the
+     * version-suffixed directory a lost disk last held, restorable from cloud). The redirect is
+     * ignored unless it names a sibling with the same base name that is not awaiting deletion.
+     */
+    private String redirectOpenPath(PreOpenHook preOpenHook, String candidate) {
+        String redirected = preOpenHook.resolveOpenPath(this.graphName, candidate);
+        if (redirected == null || redirected.equals(candidate)) {
+            return candidate;
+        }
+        File from = new File(candidate);
+        File to = new File(redirected);
+        String fromName = from.getName();
+        int sep = fromName.indexOf('_');
+        String baseName = sep < 0 ? fromName : fromName.substring(0, sep);
+        boolean sibling = Objects.equals(from.getAbsoluteFile().getParentFile(),
+                                         to.getAbsoluteFile().getParentFile())
+                          && to.getName().matches(Pattern.quote(baseName) + "(_\\d+){0,2}");
+        if (!sibling || RocksDBFactory.getInstance().findPathInRemovedList(redirected)) {
+            log.warn("{} ignoring open-path redirect {} -> {}", this.graphName, candidate,
+                     redirected);
+            return candidate;
+        }
+        log.info("{} opening {} instead of {} (restorable from remote state)", this.graphName,
+                 redirected, candidate);
+        return redirected;
+    }
+
+    /**
      * Deletes leftover {@code <graph>[_v1[_v2]]_cloudmeta_<nanos>} checkpoint dirs from a previous
      * run that crashed mid-capture. They hold only metadata copies and SST hard-links, so deleting
      * them never touches live data.
@@ -495,6 +534,10 @@ public class RocksDBSession implements AutoCloseable, Cloneable {
 
         Asserts.isTrue((dbPath != null),
                        () -> new DBStoreException("the data-path of RocksDB is null"));
+
+        if (preOpenHook != null && !new File(this.dbPath, "CURRENT").exists()) {
+            this.dbPath = redirectOpenPath(preOpenHook, this.dbPath);
+        }
 
         sweepStaleCloudMetaDirs();
 

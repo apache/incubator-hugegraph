@@ -76,9 +76,12 @@ public interface CloudStorageProvider extends Closeable {
     boolean fileExists(String remoteKey) throws IOException;
 
     /**
-     * Lists object keys under a remote directory/prefix.
+     * Lists object keys that start with a remote key prefix. The prefix is matched as a plain
+     * string, as S3 {@code ListObjectsV2} does: callers pass a trailing {@code /} to list one
+     * directory, and omit it to list sibling directories that share a name prefix (used to find a
+     * DB's version-suffixed directories, e.g. {@code 00001} and {@code 00001_5}).
      *
-     * @param remoteDirPrefix directory/prefix inside bucket (without provider pathPrefix)
+     * @param remoteDirPrefix key prefix inside bucket (without provider pathPrefix)
      * @return object keys relative to provider root (without provider pathPrefix)
      * @throws IOException on I/O or network failure
      */

@@ -85,6 +85,10 @@ prefer `--infra-only` to skip scripted data creation and validation checks while
 ```bash
 export REPO_ROOT="$(git rev-parse --show-toplevel)"
 echo "$REPO_ROOT"
+# The harness runs its own compose project from a generated file; every `docker compose`
+# command in this guide targets that stack through these two variables.
+export COMPOSE_PROJECT_NAME=cloud-storage-test
+export CF="$REPO_ROOT/docker/cloud-storage/.generated/docker-compose.yml"
 
 $REPO_ROOT/docker/cloud-storage/scripts/test-graph-queries-and-sst.sh --keep-stack --infra-only
 ```
@@ -142,7 +146,7 @@ for i in {1..60}; do
   store0_ok=$(curl -fsS http://127.0.0.1:8520/v1/health >/dev/null 2>&1 && echo "yes" || echo "no")
   store1_ok=$(curl -fsS http://127.0.0.1:8521/v1/health >/dev/null 2>&1 && echo "yes" || echo "no")
   store2_ok=$(curl -fsS http://127.0.0.1:8522/v1/health >/dev/null 2>&1 && echo "yes" || echo "no")
-  server_ok=$(curl -fsS http://127.0.0.1:8080/graphs >/dev/null 2>&1 && echo "yes" || echo "no")
+  server_ok=$(curl -fsS http://127.0.0.1:8080/versions >/dev/null 2>&1 && echo "yes" || echo "no")
   
   if [[ "$pd_ok" == "yes" && "$store0_ok" == "yes" && "$store1_ok" == "yes" && "$store2_ok" == "yes" && "$server_ok" == "yes" ]]; then
     break
@@ -157,15 +161,15 @@ curl -fsS http://127.0.0.1:8620/v1/health >/dev/null 2>&1 && echo "✓ PD OK" ||
 curl -fsS http://127.0.0.1:8520/v1/health >/dev/null 2>&1 && echo "✓ Store0 OK" || echo "✗ Store0 FAILED"
 curl -fsS http://127.0.0.1:8521/v1/health >/dev/null 2>&1 && echo "✓ Store1 OK" || echo "✗ Store1 FAILED"
 curl -fsS http://127.0.0.1:8522/v1/health >/dev/null 2>&1 && echo "✓ Store2 OK" || echo "✗ Store2 FAILED"
-curl -fsS http://127.0.0.1:8080/graphs >/dev/null 2>&1 && echo "✓ Server OK" || echo "✗ Server FAILED"
+curl -fsS http://127.0.0.1:8080/versions >/dev/null 2>&1 && echo "✓ Server OK" || echo "✗ Server FAILED"
 ```
 
 If all show "✓ OK", proceed to Step 3. If any show "✗ FAILED", check logs:
 ```bash
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs --tail=50 server
+docker compose -f "$CF" logs --tail=50 server
 ```
 
-**Note:** The `/graphs` endpoint returns a clean 200 OK response, making it the most reliable health check for the HugeGraph server. The `/gremlin` endpoint requires query parameters.
+**Note:** The `/versions` endpoint returns a clean 200 OK response without touching a graph, and is the endpoint the compose health checks use. The `/gremlin` endpoint requires query parameters.
 
 ### Step 3: Create Graph Schema
 
@@ -261,7 +265,7 @@ Optional quick sanity check before flush (uses Gremlin because the REST `/graph/
 is capped at 100 vertices by default):
 
 ```bash
-curl -s -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
+curl -s --compressed -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
   -d '{"gremlin":"g.V().count()","bindings":{},"language":"gremlin-groovy","aliases":{"g":"__g_DEFAULT-hugegraph"}}' \
   | python3 -c "import sys,json; print('Total vertices:', json.load(sys.stdin)['result']['data'][0])"
 ```
@@ -377,8 +381,8 @@ fi
 - ✅ All buckets include `CURRENT`, `MANIFEST-*`, `OPTIONS-*`, and `*.sst`
 
 **If buckets are still empty after flush:**
-1. Check store logs for upload errors: `docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | grep -i "s3\|cloud\|error"`
-2. Verify cloud storage was initialized: `docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | grep -i "Cloud storage provider.*initialized\|S3CloudStorageProvider initialized"`
+1. Check store logs for upload errors: `docker compose -f "$CF" logs store0 | grep -i "s3\|cloud\|error"`
+2. Verify cloud storage was initialized: `docker compose -f "$CF" logs store0 | grep -i "Cloud storage provider.*initialized\|S3CloudStorageProvider initialized"`
 3. Check that data was written: `docker exec cloud-storage-store0 sh -lc 'find /hugegraph-store/storage -name "*.sst" | wc -l'`
 
 ### Advanced 2: Clear Semantics & No-Orphan Re-hydration
@@ -512,7 +516,7 @@ docker run --rm --entrypoint /bin/sh --network "$HG_NET" \
 
 ```bash
 echo "Vertex count immediately after clear (expected 0):"
-curl -s -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
+curl -s --compressed -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
   -d "{\"gremlin\":\"g.V().count()\",\"bindings\":{},\"language\":\"gremlin-groovy\",\"aliases\":{\"g\":\"__g_DEFAULT-${GRAPH_NAME}\"}}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['data'][0])"
 
@@ -520,7 +524,7 @@ docker restart cloud-storage-store0 cloud-storage-store1 cloud-storage-store2
 sleep 20
 
 echo "Vertex count after store restart (must remain 0):"
-curl -s -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
+curl -s --compressed -X POST http://localhost:8080/gremlin -H 'Content-Type: application/json' \
   -d "{\"gremlin\":\"g.V().count()\",\"bindings\":{},\"language\":\"gremlin-groovy\",\"aliases\":{\"g\":\"__g_DEFAULT-${GRAPH_NAME}\"}}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['result']['data'][0])"
 ```
@@ -646,7 +650,9 @@ rm -rf $REPO_ROOT/docker/cloud-storage/.generated/
 To reset everything including built Docker images (for a fresh start):
 
 ```bash
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml down
+export COMPOSE_PROJECT_NAME=cloud-storage-test
+CF="$REPO_ROOT/docker/cloud-storage/.generated/docker-compose.yml"
+docker compose -f "$CF" down
 rm -rf $REPO_ROOT/docker/cloud-storage/data/ $REPO_ROOT/docker/cloud-storage/logs/ $REPO_ROOT/docker/cloud-storage/.artifacts/
 docker rmi \
   hugegraph-pd-cloud-storage:local \
@@ -671,30 +677,33 @@ docker rmi \
 
 ### Troubleshooting Manual Verification Steps
 
+The commands below target the harness stack through `COMPOSE_PROJECT_NAME` and `CF` from
+[Step 1](#step-1-set-environment-and-start-infrastructure-no-auto-load); set them again in a new shell.
+
 **Step 2: Server not becoming healthy**
 ```bash
 # Check if server container is running
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml ps server
+docker compose -f "$CF" ps server
 
 # Check server logs
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs --tail=100 server
+docker compose -f "$CF" logs --tail=100 server
 
-# Verify port 8080 is accessible and /graphs endpoint works
-curl -v http://127.0.0.1:8080/graphs
+# Verify port 8080 is accessible and the /versions health endpoint works
+curl -v http://127.0.0.1:8080/versions
 ```
 
-**Note:** The server health check uses `/graphs` endpoint (HTTP 200 OK), not `/gremlin` (requires query parameter).
+**Note:** The server health check uses the `/versions` endpoint (HTTP 200 OK), not `/gremlin` (requires query parameter).
 
 **Step 3-4: Graph API errors (HTTP errors)**
 ```bash
 # Verify server is healthy
-curl -fsS http://127.0.0.1:8080/graphs && echo "Server OK" || echo "Server not ready"
+curl -fsS http://127.0.0.1:8080/versions && echo "Server OK" || echo "Server not ready"
 
 # Check if graph exists
-curl -s http://localhost:8080/graphs/hugegraph/graph/vertices | python3 -c "import sys,json; print(json.load(sys.stdin).keys())"
+curl -s --compressed http://localhost:8080/graphs/hugegraph/graph/vertices | python3 -c "import sys,json; print(json.load(sys.stdin).keys())"
 
 # Check server logs for errors
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs server | grep -i "error\|exception" | tail -20
+docker compose -f "$CF" logs server | grep -i "error\|exception" | tail -20
 ```
 
 **Optional partition check shows empty**
@@ -703,7 +712,7 @@ docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs server
 # This is normal - proceed to Core Step 5 to flush
 
 # Or check if data was actually written
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | grep -i "vertex\|edge\|insert" | tail -10
+docker compose -f "$CF" logs store0 | grep -i "vertex\|edge\|insert" | tail -10
 ```
 
 **Core Step 5: Flush endpoint fails or stores become unhealthy**
@@ -716,7 +725,7 @@ for i in 0 1 2; do
 done
 
 # Check store logs for startup errors
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | tail -50 | grep -i "error\|exception"
+docker compose -f "$CF" logs store0 | tail -50 | grep -i "error\|exception"
 ```
 
 **Core Step 5 / Advanced 1: Buckets showing 0 files after flush**
@@ -725,27 +734,27 @@ This is the most common issue. Debug step-by-step:
 
 1. **Verify stores have data on disk:**
    ```bash
-   docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec store0 \
+   docker compose -f "$CF" exec store0 \
      find /hugegraph-store/storage -name "*.sst" | wc -l
    ```
    If output is 0, no SST files were created. Go back to Step 4 and ensure data was inserted.
 
 2. **Verify cloud storage was initialized:**
    ```bash
-   docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | \
+   docker compose -f "$CF" logs store0 | \
      grep -i "S3CloudStorageProvider\|cloud storage" | head -5
    ```
    If no output, plugin didn't load. In this harness image, check `/hugegraph-store/plugins/` for `hg-store-cloud-s3.jar`.
 
 3. **Check for S3 upload errors:**
    ```bash
-   docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | \
+   docker compose -f "$CF" logs store0 | \
      grep -i "upload\|s3\|error" | tail -20
    ```
 
 4. **Verify MinIO connectivity:**
    ```bash
-   docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec store0 \
+   docker compose -f "$CF" exec store0 \
      curl -v http://minio:9000/minio/health/live
    ```
 
@@ -758,6 +767,9 @@ This is the most common issue. Debug step-by-step:
    ```
 
 ### Troubleshooting: General Infrastructure Issues
+
+These commands also use `COMPOSE_PROJECT_NAME` and `CF` from
+[Step 1](#step-1-set-environment-and-start-infrastructure-no-auto-load).
 
 ### Store crashes with SIGSEGV on ARM64 (libjvm.so)
 
@@ -802,18 +814,18 @@ $REPO_ROOT/docker/cloud-storage/scripts/test-graph-queries-and-sst.sh
 If old containers are still running, force recreate with fresh env:
 
 ```bash
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml down
+docker compose -f "$CF" down
 $REPO_ROOT/docker/cloud-storage/scripts/test-graph-queries-and-sst.sh
 
 # Verify container runtime JDK actually changed
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml run --rm --entrypoint java store0 -version
+docker compose -f "$CF" run --rm --entrypoint java store0 -version
 ```
 
 If the crash persists, inspect the generated JVM error file from store logs/data path:
 
 ```bash
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | tail -200
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec store0 ls -lah /hugegraph-store/hs_err_pid*.log
+docker compose -f "$CF" logs store0 | tail -200
+docker compose -f "$CF" exec store0 ls -lah /hugegraph-store/hs_err_pid*.log
 ```
 
 ### No SST files appear in MinIO
@@ -821,11 +833,11 @@ docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec store0
 - Short test runs may not trigger compaction; SST deletion especially requires heavier/longer load
 - Check store logs for upload errors:
   ```bash
-  docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 | grep -i "cloud\|s3"
+  docker compose -f "$CF" logs store0 | grep -i "cloud\|s3"
   ```
 - Verify MinIO is accessible:
   ```bash
-  docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec minio mc ls local/ 2>&1 | head -20
+  docker compose -f "$CF" exec minio mc ls local/ 2>&1 | head -20
   ```
 
 ### Query tests show FAILED
@@ -834,7 +846,7 @@ docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec store0
 - Manually test: `curl -fsS http://127.0.0.1:8520/v1/partitions | jq`
 - Check store logs with:
   ```bash
-  docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 store1 store2
+  docker compose -f "$CF" logs store0 store1 store2
   ```
 
 ### Keep stack running for debugging
@@ -846,13 +858,13 @@ KEEP_STACK=1 $REPO_ROOT/docker/cloud-storage/scripts/test-graph-queries-and-sst.
 
 Then inspect manually:
 ```bash
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml logs store0 store1 store2
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml exec store0 ls -la /hugegraph-store/storage
+docker compose -f "$CF" logs store0 store1 store2
+docker compose -f "$CF" exec store0 ls -la /hugegraph-store/storage
 ```
 
 Stop manually when done:
 ```bash
-docker compose -f $REPO_ROOT/docker/cloud-storage/docker-compose.yml down
+docker compose -f "$CF" down
 ```
 
 ## Summary of Manual Verification Workflow

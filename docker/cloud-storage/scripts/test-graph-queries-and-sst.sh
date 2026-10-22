@@ -866,8 +866,7 @@ run_recovery_test() {
  # successful purge, so the positive assertion is: the sibling key was observed in MinIO during
  # the delete, or the store logs show it was written under exactly that key. Fails if no delete
  # was exercised, if no evidence of the sibling key exists, or if an inner-path key appears.
- # Return codes: 0 = pass, 1 = fail, 2 = skipped (reason in TOMBSTONE_SKIP_REASON).
- TOMBSTONE_SKIP_REASON=""
+ # Return codes: 0 = pass, 1 = fail.
  run_tombstone_sibling_key_test() {
      log "=== Tombstone sibling-key E2E ==="
      local tombstone_key inside_key written_logs sibling_logged="no" inside_found
@@ -1440,14 +1439,9 @@ else
     exit 1
 fi
 
-tombstone_rc=0
-run_tombstone_sibling_key_test || tombstone_rc=$?
-if [[ "$tombstone_rc" -eq 0 ]]; then
+if run_tombstone_sibling_key_test; then
     TOMBSTONE_STATUS="PASS"
     record_phase "tombstone-sibling-key" "PASS" "tombstone written at sibling key ${DELETE_TOMBSTONE_KEY}, not inner path"
-elif [[ "$tombstone_rc" -eq 2 ]]; then
-    TOMBSTONE_STATUS="SKIPPED"
-    record_phase "tombstone-sibling-key" "SKIPPED" "${TOMBSTONE_SKIP_REASON:-skipped}"
 else
     TOMBSTONE_STATUS="FAIL"
     record_phase "tombstone-sibling-key" "FAIL" "tombstone sibling-key check failed"
@@ -1466,10 +1460,5 @@ else
 fi
 
 SMOKE_STATUS="PASS"
-if [[ "$TOMBSTONE_STATUS" == "SKIPPED" ]]; then
-    record_phase "smoke-tests" "PASS" "all executed cloud storage E2E tests passed (tombstone-sibling-key SKIPPED)"
-    log "✓ SUCCESS: all executed cloud storage E2E tests passed (tombstone-sibling-key SKIPPED)"
-else
-    record_phase "smoke-tests" "PASS" "all cloud storage E2E tests passed"
-    log "✓ SUCCESS: all cloud storage E2E tests passed"
-fi
+record_phase "smoke-tests" "PASS" "all cloud storage E2E tests passed"
+log "✓ SUCCESS: all cloud storage E2E tests passed"

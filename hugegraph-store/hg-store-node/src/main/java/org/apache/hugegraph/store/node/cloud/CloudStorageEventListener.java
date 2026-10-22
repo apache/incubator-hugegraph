@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import lombok.Getter;
@@ -530,6 +533,101 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         return true;
     }
 
+    /**
+     * Picks the directory to open when the local one holds no DB. A partition can move to a
+     * version-suffixed directory ({@code <name>_<v1>[_<v2>]}) and its objects then live under that
+     * prefix, so after a disk loss the default path would hydrate nothing. Lists the remote
+     * siblings that share the base name and returns the newest restorable one, matching the order
+     * {@code RocksDBSession} uses locally. A sibling is restorable when it has a remote
+     * {@code CURRENT}, no delete tombstone and no local pending-delete marker. If listing fails the
+     * path is kept, and the hydration of that path applies its own failure rules.
+     */
+    @Override
+    public String resolveOpenPath(String dbName, String dbPath) {
+        if (!startupHydrationEnabled) {
+            return dbPath;
+        }
+        Path candidate = Paths.get(dbPath).toAbsolutePath().normalize();
+        Path parent = candidate.getParent();
+        if (parent == null) {
+            return dbPath;
+        }
+        String name = candidate.getFileName().toString();
+        int sep = name.indexOf('_');
+        String baseName = sep < 0 ? name : name.substring(0, sep);
+        String basePrefix = dbPrefix(parent.resolve(baseName).toString());
+        if (!basePrefix.endsWith(baseName)) {
+            return dbPath;
+        }
+        String parentKeyPrefix = basePrefix.substring(0, basePrefix.length() - baseName.length());
+        List<String> keys;
+        try {
+            keys = provider.listFiles(basePrefix);
+        } catch (IOException e) {
+            log.warn("Cloud open: listing version siblings of db={} failed, keeping {}: {}",
+                     dbName, dbPath, e.getMessage());
+            return dbPath;
+        }
+        String newest = newestRestorableSibling(parentKeyPrefix, baseName, keys);
+        if (newest == null || newest.equals(name)) {
+            return dbPath;
+        }
+        log.info("Cloud open: db={} has no local DB at {}; restoring newest remote sibling '{}'",
+                 dbName, dbPath, newest);
+        return parent.resolve(newest).toString();
+    }
+
+    /**
+     * Newest restorable directory name among {@code baseName} and its version-suffixed siblings
+     * found in {@code keys}, or {@code null} if none (package-private for tests).
+     */
+    String newestRestorableSibling(String parentKeyPrefix, String baseName, List<String> keys) {
+        Pattern dirName = Pattern.compile(Pattern.quote(baseName) + "(?:_(\\d+)(?:_(\\d+))?)?");
+        Set<String> withCurrent = new HashSet<>();
+        Set<String> tombstoned = new HashSet<>();
+        for (String key : keys) {
+            if (!key.startsWith(parentKeyPrefix)) {
+                continue;
+            }
+            String rel = key.substring(parentKeyPrefix.length());
+            int slash = rel.indexOf('/');
+            if (slash < 0) {
+                if (rel.endsWith(DB_TOMBSTONE_SUFFIX)) {
+                    tombstoned.add(rel.substring(0, rel.length() - DB_TOMBSTONE_SUFFIX.length()));
+                }
+                continue;
+            }
+            String dir = rel.substring(0, slash);
+            if ("CURRENT".equals(rel.substring(slash + 1)) && dirName.matcher(dir).matches()) {
+                withCurrent.add(dir);
+            }
+        }
+        String newest = null;
+        long[] newestVersion = null;
+        for (String dir : withCurrent) {
+            if (tombstoned.contains(dir) || hasPendingDeleteMarker(parentKeyPrefix + dir)) {
+                continue;
+            }
+            Matcher m = dirName.matcher(dir);
+            if (!m.matches()) {
+                continue;
+            }
+            long[] version;
+            try {
+                version = new long[]{m.group(1) == null ? -1L : Long.parseLong(m.group(1)),
+                                     m.group(2) == null ? -1L : Long.parseLong(m.group(2))};
+            } catch (NumberFormatException e) {
+                continue;
+            }
+            if (newestVersion == null || version[0] > newestVersion[0]
+                || (version[0] == newestVersion[0] && version[1] > newestVersion[1])) {
+                newest = dir;
+                newestVersion = version;
+            }
+        }
+        return newest;
+    }
+
     @Override
     public void onDBOpening(String dbName, String dbPath) {
         // Register the dir -> logical-name mapping first: native events that arrive before
@@ -556,6 +654,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             truncatePurgeConfirmed = tryCompletePendingTruncate(dbName, prefix);
         }
         if (!startupHydrationEnabled) {
+            // Nothing is hydrated, but the DB will upload into this prefix: a leftover tombstone
+            // must be resolved now, or a later open with hydration enabled would purge its data.
+            purgeTombstonedPrefix(provider, dbName, Paths.get(dbPath), prefix, false);
             return;
         }
         if (!truncatePurgeConfirmed) {
@@ -641,7 +742,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     }
 
     /**
-     * Called when a read returns null in RocksDB.
+     * Called when a RocksDB read fails, typically because a live SST is missing on local disk.
      *
      * <p>We restore only the SST files that RocksDB references as <em>live</em> in its manifest but
      * that are physically missing on local disk, downloading each back to its <em>exact original
@@ -650,8 +751,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      * and (b) assign a fresh sequence number that can resurrect deleted keys. Restricting to the
      * live set also guarantees superseded / compacted-away objects are never resurrected.
      *
-     * <p>Note: a genuine key-not-found also arrives here as {@code value == null}; in that case no
-     * live file is missing and we return {@code false} without any cloud I/O.
+     * <p>If no live file is missing (the error has another cause) this returns {@code false}
+     * without any cloud I/O, and the original error propagates.
      */
     @Override
     public boolean onReadMiss(RocksDBSession session, String table, byte[] key) {
@@ -783,6 +884,9 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                     "Cannot durably persist pending-delete marker for db=" + dbName
                     + "; holding delete to preserve the anti-resurrection guard", e);
         }
+        // The delete is going ahead and the prefix will be purged, so publishing the DB's
+        // metadata when its session closes (onDBClosing) would be wasted work.
+        dirtyMetadataDbs.remove(dbName);
 
         // Tombstone lives OUTSIDE the data prefix (sibling, not child) so it is not
         // accidentally deleted by purgeRemotePrefix when SST objects are still present.
@@ -793,6 +897,28 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         } catch (Exception e) {
             log.warn("Cloud DB tombstone write failed (onDBDeleted will still purge): "
                      + "db={}, key={}, reason={}", dbName, tombstoneKey, e.getMessage());
+        }
+    }
+
+    /**
+     * Publishes a still-dirty DB's metadata while its session is open. The release path (a
+     * partition moving away, and {@code releaseAllGraphDB()} at shutdown, which runs before this
+     * listener is closed) would otherwise close the DB first, and the deferred publish could then
+     * never capture it, leaving the cloud CURRENT/MANIFEST behind the uploaded SSTs.
+     */
+    @Override
+    public void onDBClosing(String dbName) {
+        if (isActivelyTruncating(dbName) || isInTruncationGracePeriod(dbName)) {
+            return; // the truncate purge supersedes the publish
+        }
+        if (!dirtyMetadataDbs.remove(dbName)) {
+            return;
+        }
+        if (!publishDirtyMetadata(dbName)) {
+            // Not re-marked: the DB is closing, so a deferred publish would only fail again.
+            log.warn("Cloud metadata publish before close failed for db={}: the mirrored "
+                     + "CURRENT/MANIFEST may lag the uploaded SSTs until the DB is next opened.",
+                     dbName);
         }
     }
 
@@ -822,46 +948,64 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
      */
     @Override
     public void onDBDeleted(String dbName, String dbPath) {
-        // Clear in-memory tracking so no stale state bleeds into a recreated DB.
-        syncTracker.clearDb(dbName);
-        readMissAttemptTs.entrySet().removeIf(e -> e.getKey().startsWith(dbName + "::"));
-        dbNameByDir.values().removeIf(dbName::equals);
-        metadataSyncLocks.remove(dbName);
-        lastPublishedMetadataGeneration.remove(dbName);
-        truncationTimes.remove(dbName);
-        truncatingDbs.remove(dbName);
-        deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName));
-        dirtyMetadataDbs.remove(dbName);
-        publishBackoffs.remove(dbName);
-        // Remove per-DB meters so meter cardinality does not grow without bound as DBs churn.
-        CloudStorageMetrics.unregisterDatabaseMetrics(dbName);
+        String deletedDir = normaliseDir(dbPath);
+        dbNameByDir.remove(deletedDir);
+        if (dbNameByDir.containsValue(dbName)) {
+            // The same logical DB is live at another directory (it was re-created there while this
+            // one awaited destruction). Its name-keyed state belongs to the live copy, so only
+            // the work queued for files of the deleted directory is dropped.
+            deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName)
+                                             && deletedDir.equals(parentDir(t.filePath)));
+            log.info("Cloud DB deleted at {} while db={} is live elsewhere; keeping its state",
+                     deletedDir, dbName);
+        } else {
+            // Clear in-memory tracking so no stale state bleeds into a recreated DB.
+            syncTracker.clearDb(dbName);
+            readMissAttemptTs.entrySet().removeIf(e -> e.getKey().startsWith(dbName + "::"));
+            dbNameByDir.values().removeIf(dbName::equals);
+            metadataSyncLocks.remove(dbName);
+            lastPublishedMetadataGeneration.remove(dbName);
+            truncationTimes.remove(dbName);
+            truncatingDbs.remove(dbName);
+            deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName));
+            dirtyMetadataDbs.remove(dbName);
+            publishBackoffs.remove(dbName);
+            // Remove per-DB meters so meter cardinality does not grow without bound as DBs churn.
+            CloudStorageMetrics.unregisterDatabaseMetrics(dbName);
+        }
 
         String prefix = dbPrefix(dbPath);
-        boolean purgeSucceeded = purgeRemotePrefix(provider, dbName, prefix);
-        if (purgeSucceeded) {
-            // Remote data is gone: drop the sibling tombstone and the local marker (cleanup done).
-            deleteTombstoneBestEffort(provider, dbName, prefix);
+        if (purgeRemotePrefix(provider, dbName, prefix)
+            && deleteTombstone(provider, dbName, prefix)) {
+            // Remote data and the sibling tombstone are gone: drop the local marker (cleanup done).
             removeMarker(pendingDeleteDir(), prefix);
         } else {
-            // Purge failed: stale SST objects may remain. Keep the tombstone AND the local marker so
-            // a future onDBOpening still blocks re-hydration, and retry the purge (bounded) — same
-            // safety level as the truncate purge, instead of a single best-effort attempt.
-            log.warn("Cloud DB purge failed for db={}: tombstone + local marker preserved to guard "
-                     + "re-hydration; scheduling bounded retries.", dbName);
+            // Purge or tombstone delete failed. Keep the local marker so a future onDBOpening is
+            // blocked until both succeed, and retry (bounded) — same safety level as the truncate
+            // purge. The marker must outlive the tombstone: a tombstone left next to a re-created
+            // DB would make a later open purge that DB's live objects.
+            log.warn("Cloud DB delete cleanup failed for db={}: local marker preserved to block "
+                     + "re-opening the prefix; scheduling bounded retries.", dbName);
             scheduleDeletePurgeRetry(dbName, prefix, 1);
         }
     }
 
-    /** Best-effort deletion of the sibling delete-tombstone once the prefix purge has succeeded. */
-    private void deleteTombstoneBestEffort(CloudStorageProvider provider, String dbName,
-                                           String prefix) {
+    /**
+     * Deletes the sibling delete-tombstone once the prefix purge has succeeded. Returns
+     * {@code false} on failure: the caller must then keep the pending-delete marker (and so keep
+     * the prefix blocked), because a tombstone that outlives the marker would make the next open
+     * purge the live objects of a DB re-created at the same prefix.
+     */
+    private boolean deleteTombstone(CloudStorageProvider provider, String dbName, String prefix) {
         String tombstoneKey = prefix + DB_TOMBSTONE_SUFFIX;
         try {
             provider.deleteFile(tombstoneKey);
             log.debug("Cloud DB tombstone cleaned up: db={}, key={}", dbName, tombstoneKey);
+            return true;
         } catch (IOException e) {
-            log.debug("Cloud DB tombstone cleanup failed (non-critical): db={}, key={}: {}",
-                      dbName, tombstoneKey, e.getMessage());
+            log.warn("Cloud DB tombstone cleanup failed: db={}, key={}: {}",
+                     dbName, tombstoneKey, e.getMessage());
+            return false;
         }
     }
 
@@ -1162,8 +1306,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
                 return true; // already cleaned up by another caller
             }
             ensureTombstonePresent(provider, dbName, prefix);
-            if (purgeRemotePrefix(provider, dbName, prefix)) {
-                deleteTombstoneBestEffort(provider, dbName, prefix);
+            if (purgeRemotePrefix(provider, dbName, prefix)
+                && deleteTombstone(provider, dbName, prefix)) {
                 removeMarker(pendingDeleteDir(), prefix);
                 log.info("Cloud pending-delete cleanup completed for db={} (prefix={})",
                          dbName, prefix);
@@ -1386,6 +1530,13 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             if (deleted > 0) {
                 log.info("Cloud DB purge completed: db={}, prefix={}, deleted={}",
                          dbName, prefix, deleted);
+            }
+            // Every confirmation for this DB now names a deleted object. Drop them (bumping the
+            // tracker epoch so in-flight confirmations are discarded too); otherwise the snapshot
+            // SST check would skip re-uploading them and publish a MANIFEST pointing at nothing.
+            // Skipped when the name is live under another prefix: those confirmations are valid.
+            if (!liveUnderOtherPrefix(dbName, prefix)) {
+                syncTracker.clearDb(dbName);
             }
             return true;
         } catch (IOException e) {
@@ -1617,6 +1768,11 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     /**
      * Removes the deleted SST file from the active cloud storage provider.
      *
+     * <p>This callback runs on a RocksDB background (compaction/flush) thread, so it performs no
+     * cloud I/O itself: the delete is queued and {@link #processDeferredSstDeletes} runs the
+     * live-set durability guard, the MANIFEST publish and the remote delete on the metadata-sync
+     * thread, publishing metadata once per DB for every delete a compaction produced.
+     *
      * @param dbNameOrPath RocksDB instance name (partition id) or DB directory path
      * @param cfName   column-family name
      * @param filePath absolute local path of the deleted SST file
@@ -1635,59 +1791,11 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             log.debug("Skipping delete during truncation: db={}, path={}", dbName, filePath);
             return;
         }
-        // DATA-LOSS GUARD: never delete a superseded cloud object until every SST file currently
-        // live in this DB is confirmed present in cloud.
-        if (ensureLiveSetUploaded(provider, dbName)) {
-            log.warn("Delete skipped (live set not fully durable in cloud): db={}, filePath={}",
-                     dbName, filePath);
-            enqueueDeferredSstDelete(dbName, cfName, filePath,
-                                     "live set not yet fully durable in cloud");
-            return;
-        }
-
-        // MANIFEST-BEFORE-DELETE INVARIANT: publish an updated MANIFEST+CURRENT that reflects
-        // the post-compaction live set before removing the old SST from cloud.  Without this, a
-        // crash between the SST delete and the next metadata-sync attempt leaves a cloud
-        // MANIFEST that references an object that no longer exists, making recovery impossible.
-        //
-        // We use syncMetadataSnapshotInline (no MemTable flush) because:
-        //   (a) this callback fires on a RocksDB compaction thread — calling flushSession(wait=true)
-        //       here would deadlock against RocksDB background execution;
-        //   (b) a flush is not needed: by the time onTableFileDeleted fires the compaction is
-        //       complete, new SSTs are already on disk and uploaded, and the MANIFEST already
-        //       reflects the post-compaction state.
-        if (!syncMetadataSnapshotInline(provider, dbName)) {
-            log.warn("Delete skipped (metadata sync failed, MANIFEST not yet updated): "
-                     + "db={}, filePath={}", dbName, filePath);
-            enqueueDeferredSstDelete(dbName, cfName, filePath,
-                                     "metadata sync failed before safe delete");
-            return;
-        }
-
-        String remoteKey = toRelativeKey(filePath);
-        try {
-            provider.deleteFile(remoteKey);
-            syncTracker.clearConfirmed(dbName, filePath);
-            deferredSstDeletes.remove(new DeferredSstDelete(dbName, filePath));
-            log.debug("Cloud delete success: db={}, cf={}, path={}", dbName, cfName, filePath);
-        } catch (Exception e) {
-            // Non-fatal: log and continue.
-            log.error("Cloud delete failed: db={}, cf={}, path={}", dbName, cfName, filePath, e);
-            enqueueDeferredSstDelete(dbName, cfName, filePath,
-                                     "cloud delete failed after metadata publish");
-        }
-    }
-
-    private void enqueueDeferredSstDelete(String dbName, String cfName, String filePath,
-                                          String reason) {
-        DeferredSstDelete task = new DeferredSstDelete(dbName, filePath);
-        boolean added = deferredSstDeletes.add(task);
-        if (added) {
-            log.debug("Cloud delete deferred: db={}, cf={}, path={}, reason={}",
-                      dbName, cfName, filePath, reason);
+        if (deferredSstDeletes.add(new DeferredSstDelete(dbName, filePath))) {
+            log.debug("Cloud delete queued: db={}, cf={}, path={}", dbName, cfName, filePath);
             updateDeferredSstDeleteWarnState();
         }
-        scheduleDeferredSstDeleteRetry(DEFERRED_SST_DELETE_RETRY_MS);
+        scheduleDeferredSstDeleteRetry(0L);
     }
 
     /** Emits one WARN only when deferred backlog crosses the threshold, then rearms below it. */
@@ -1714,7 +1822,7 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         try {
             metadataSyncScheduler.schedule(() -> {
                 deferredSstDeleteRetryScheduled.set(false);
-                retryDeferredSstDeletes();
+                processDeferredSstDeletes();
             }, safeDelay, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException e) {
             deferredSstDeleteRetryScheduled.set(false);
@@ -1723,20 +1831,33 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         }
     }
 
-    /** Retries superseded-SST deletes that were deferred on transient cloud/metadata failures. */
-    private void retryDeferredSstDeletes() {
+    /**
+     * Deletes queued superseded SSTs from cloud, on the metadata-sync thread. For each DB the
+     * preconditions are checked once per pass, whatever the number of queued deletes:
+     *
+     * <ol>
+     *   <li>DATA-LOSS GUARD: every SST currently live in the DB is confirmed present in cloud, so
+     *       a compaction input is never removed before its outputs are durable.</li>
+     *   <li>MANIFEST-BEFORE-DELETE: an updated MANIFEST+CURRENT reflecting the post-compaction
+     *       live set is published first; otherwise a crash between the SST delete and the next
+     *       metadata sync leaves a cloud MANIFEST that references a deleted object.</li>
+     * </ol>
+     *
+     * <p>Deletes whose DB fails either check, or whose remote delete fails, stay queued and are
+     * retried. Package-private (and serialised) so tests can drive a pass deterministically.
+     */
+    synchronized void processDeferredSstDeletes() {
         if (deferredSstDeletes.isEmpty()) {
             return;
         }
+        Map<String, Boolean> readyByDb = new HashMap<>();
         int succeeded = 0;
         for (DeferredSstDelete task : new ArrayList<>(deferredSstDeletes)) {
             if (isActivelyTruncating(task.dbName) || isInTruncationGracePeriod(task.dbName)) {
                 continue;
             }
-            if (ensureLiveSetUploaded(provider, task.dbName)) {
-                continue;
-            }
-            if (!syncMetadataSnapshotInline(provider, task.dbName)) {
+            boolean ready = readyByDb.computeIfAbsent(task.dbName, this::readyForSstDeletes);
+            if (!ready) {
                 continue;
             }
             String remoteKey = toRelativeKey(task.filePath);
@@ -1752,12 +1873,34 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             }
         }
         if (succeeded > 0) {
-            log.debug("Deferred cloud-delete retry succeeded for {} superseded SST(s)", succeeded);
+            log.debug("Cloud delete removed {} superseded SST(s)", succeeded);
         }
         updateDeferredSstDeleteWarnState();
         if (!deferredSstDeletes.isEmpty()) {
             scheduleDeferredSstDeleteRetry(DEFERRED_SST_DELETE_RETRY_MS);
         }
+    }
+
+    /** Whether superseded SSTs of {@code dbName} may be deleted from cloud right now. */
+    private boolean readyForSstDeletes(String dbName) {
+        // Share the drain's per-DB publish backoff: while a DB's publishes keep failing, the 500 ms
+        // delete retry must not redo a checkpoint (which flushes the memtable) and an upload.
+        PublishBackoff backoff = publishBackoffs.get(dbName);
+        if (backoff != null && System.currentTimeMillis() < backoff.nextAttemptAtMs) {
+            return false;
+        }
+        if (ensureLiveSetUploaded(provider, dbName)) {
+            log.warn("Cloud delete held (live set not fully durable in cloud): db={}", dbName);
+            return false;
+        }
+        // The compaction is complete, so its outputs are already on disk and the MANIFEST already
+        // reflects the post-compaction state; a failure here is recorded for the backoff.
+        if (!publishDirtyMetadata(dbName)) {
+            log.warn("Cloud delete held (metadata sync failed, MANIFEST not yet updated): db={}",
+                     dbName);
+            return false;
+        }
+        return true;
     }
 
     /**
@@ -1891,8 +2034,21 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
         if (dbName == null || dbDir == null) {
             return;
         }
-        String normalised = Paths.get(dbDir).toAbsolutePath().normalize().toString();
-        dbNameByDir.put(normalised, dbName);
+        dbNameByDir.put(normaliseDir(dbDir), dbName);
+    }
+
+    private static String normaliseDir(String dir) {
+        return Paths.get(dir).toAbsolutePath().normalize().toString();
+    }
+
+    /** Whether {@code dbName} is mapped to a DB directory whose remote prefix is not {@code prefix}. */
+    private boolean liveUnderOtherPrefix(String dbName, String prefix) {
+        for (Map.Entry<String, String> e : dbNameByDir.entrySet()) {
+            if (dbName.equals(e.getValue()) && !prefix.equals(dbPrefix(e.getKey()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Absolute, normalised parent directory of a file path (the DB dir of an SST). */
@@ -2304,6 +2460,71 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
     }
 
     /**
+     * STALE-DATA GUARD: if a tombstone exists (written by {@link #onDBDeleteBegin} outside the data
+     * prefix), the previous generation at this prefix was destroyed but its cloud objects may not
+     * have been fully removed. Purge them and the tombstone before the opening DB can hydrate from,
+     * or upload into, the prefix; otherwise the stale objects would resurrect deleted data, and the
+     * leftover tombstone would make a later open purge the new DB's live objects. The open is
+     * blocked if either step fails.
+     *
+     * <p>If the tombstone check itself fails, the generation state is unknown. With
+     * {@code requireConsistentLocal} (startup hydration) the open is blocked unless local metadata
+     * is self-consistent; without it (no hydration, so nothing remote is read) the open proceeds.
+     *
+     * @return {@code true} if a tombstone was found and the prefix purged (do not hydrate)
+     */
+    private boolean purgeTombstonedPrefix(CloudStorageProvider provider, String dbName, Path root,
+                                          String prefix, boolean requireConsistentLocal) {
+        String tombstoneKey = prefix + DB_TOMBSTONE_SUFFIX;
+        boolean tombstoned;
+        try {
+            tombstoned = provider.fileExists(tombstoneKey);
+        } catch (IOException e) {
+            // Tombstone check itself failed — cannot safely determine generation, and cloud cannot
+            // validate the DB. Proceed from local state ONLY if it is self-consistent (valid
+            // CURRENT→MANIFEST); orphan SSTs without a valid lineage must not silently boot.
+            if (requireConsistentLocal && hasInconsistentLocalMetadata(root)) {
+                throw new IllegalStateException(
+                        String.format("Cloud pre-hydration: tombstone check failed for db=%s and "
+                                      + "local metadata is not self-consistent (no valid "
+                                      + "CURRENT→MANIFEST lineage) — cannot safely open DB without "
+                                      + "knowing generation state: %s", dbName, e.getMessage()), e);
+            }
+            log.warn("Cloud open: tombstone check failed for db={}, proceeding with local state: {}",
+                     dbName, e.getMessage());
+            return false;
+        }
+        if (!tombstoned) {
+            return false;
+        }
+        log.warn("Cloud open: tombstone found for db={} — previous generation was deleted. "
+                 + "Purging stale remote objects; hydration is skipped.", dbName);
+        Object lock = pendingDeleteLocks.computeIfAbsent(prefix, k -> new Object());
+        synchronized (lock) {
+            if (!purgeRemotePrefix(provider, dbName, prefix)) {
+                // Leave the tombstone in place so the next open attempts the purge again and does
+                // not accidentally hydrate stale objects.
+                throw new IllegalStateException(
+                        String.format("Cloud open: prefix purge failed for db=%s — tombstone "
+                                      + "preserved to guard against stale-data re-hydration. "
+                                      + "DB open is blocked.", dbName));
+            }
+            // The tombstone lives outside the slash-terminated purged prefix, so purgeRemotePrefix
+            // never touches it — it must be deleted explicitly. If that fails the open stays
+            // blocked: the next open re-purges the (already clean) prefix and retries the delete.
+            if (!deleteTombstone(provider, dbName, prefix)) {
+                throw new IllegalStateException(
+                        String.format("Cloud open: tombstone deletion failed for db=%s after a "
+                                      + "successful prefix purge — opening now would let a later "
+                                      + "open purge this DB's new objects. DB open is blocked "
+                                      + "until tombstone '%s' is removed.", dbName, tombstoneKey));
+            }
+        }
+        log.info("Cloud open: tombstone cleaned up: db={}", dbName);
+        return true;
+    }
+
+    /**
      * Walks {@code dbPath} and uploads every {@code *.sst} file that is not already
      * present in cloud storage.  This handles restarts where SST files from a previous
      * run were never uploaded (e.g. cloud storage was enabled after the last shutdown).
@@ -2357,59 +2578,8 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
 
         String prefix = dbPrefix(dbPath);
 
-        // STALE-DATA GUARD: if a tombstone exists (written by onDBDeleteBegin outside the
-        // data prefix), the previous generation was destroyed but cloud objects may not have
-        // been fully removed. Hydrating them would silently resurrect deleted data in the new
-        // DB. Instead, skip hydration, trigger a best-effort remote purge, and start fresh.
-        String tombstoneKey = prefix + DB_TOMBSTONE_SUFFIX;
-        try {
-            if (provider.fileExists(tombstoneKey)) {
-                log.warn("Cloud pre-hydration skipped: tombstone found for db={} — previous "
-                         + "generation was deleted. Purging stale remote objects.", dbName);
-                boolean purgeSucceeded = purgeRemotePrefix(provider, dbName, prefix);
-                if (!purgeSucceeded) {
-                    // Purge failed: leave the tombstone in place so the next restart will
-                    // attempt the purge again and not accidentally hydrate stale objects.
-                    throw new IllegalStateException(
-                            String.format("Cloud pre-hydration: prefix purge failed for db=%s — "
-                                          + "tombstone preserved to guard against stale-data "
-                                          + "re-hydration. DB open is blocked.", dbName));
-                }
-                // Purge succeeded: now delete the tombstone so the next restart hydrates normally.
-                // The tombstone lives outside the slash-terminated purged prefix, so
-                // purgeRemotePrefix never touches it — we must delete it explicitly here.
-                try {
-                    provider.deleteFile(tombstoneKey);
-                    log.info("Cloud pre-hydration: tombstone cleaned up: db={}", dbName);
-                } catch (IOException e) {
-                    // Tombstone deletion failed after a successful purge. If we proceed, the next
-                    // restart will see the tombstone, re-purge an already-clean prefix, and block
-                    // hydration of legitimately written new-generation data.  Fail loudly here
-                    // instead; the operator can manually delete the tombstone to unblock.
-                    throw new IllegalStateException(
-                            String.format("Cloud pre-hydration: tombstone deletion failed for "
-                                          + "db=%s after successful prefix purge — the tombstone "
-                                          + "key '%s' must be manually removed to allow future "
-                                          + "hydration. DB open is blocked.", dbName, tombstoneKey),
-                            e);
-                }
-                return;
-            }
-        } catch (IOException e) {
-            // Tombstone check itself failed — cannot safely determine generation, and cloud cannot
-            // validate the DB. Proceed from local state ONLY if it is self-consistent (valid
-            // CURRENT→MANIFEST); orphan SSTs without a valid lineage must not silently boot.
-            if (hasInconsistentLocalMetadata(root)) {
-                throw new IllegalStateException(
-                        String.format("Cloud pre-hydration: tombstone check failed for db=%s and "
-                                      + "local metadata is not self-consistent (no valid "
-                                      + "CURRENT→MANIFEST lineage) — cannot safely open DB without "
-                                      + "knowing generation state: %s", dbName, e.getMessage()), e);
-            }
-            // Local metadata is self-consistent: safe to open from local state; log and continue.
-            log.warn("Cloud pre-hydration: tombstone check failed for db={}, proceeding with "
-                     + "self-consistent local state (valid CURRENT→MANIFEST present): {}",
-                     dbName, e.getMessage());
+        if (purgeTombstonedPrefix(provider, dbName, root, prefix, true)) {
+            return;
         }
 
         List<String> remoteFiles = listRemoteKeys(provider, prefix, root);

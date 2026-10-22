@@ -694,14 +694,24 @@ public class AppConfig {
      * {@code SCREAMING_SNAKE_CASE} source come back dot-separated (e.g. {@code secret.key}), so
      * they are normalized to the kebab-case form ({@code secret-key}) that provider configs such
      * as {@code S3CloudStorageConfig.KEY_*} expect.
+     *
+     * <p>The same key may arrive in both forms (application.yml {@code secret-key} plus the env
+     * var bound as {@code secret.key}); the env-var form wins, matching Spring's precedence of
+     * environment variables over application.yml.
      */
     private static Map<String, String> readProviderProperties(Binder binder, String provider) {
         Map<String, String> props = binder
                 .bind("cloud.storage." + provider, Bindable.mapOf(String.class, String.class))
                 .orElseGet(Collections::emptyMap);
-        return props.entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey().replace('.', '-'),
-                                              Map.Entry::getValue));
+        Map<String, String> normalised = new HashMap<>();
+        for (Map.Entry<String, String> e : props.entrySet()) {
+            String key = e.getKey().replace('.', '-');
+            boolean fromEnvVar = !key.equals(e.getKey());
+            if (fromEnvVar || !normalised.containsKey(key)) {
+                normalised.put(key, e.getValue());
+            }
+        }
+        return normalised;
     }
 
     public JobOptions getJobOptions() {

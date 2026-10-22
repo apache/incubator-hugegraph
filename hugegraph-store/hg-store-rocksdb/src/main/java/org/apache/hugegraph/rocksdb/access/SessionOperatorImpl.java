@@ -226,20 +226,9 @@ public class SessionOperatorImpl implements SessionOperator {
             }
             throw new DBStoreException(e);
         }
-        if (value != null) {
-            return value;
-        }
-
-        // Cloud hydration can perform slow I/O, so run it after releasing the CF handle lock.
-        if (!RocksDBFactory.getInstance().onReadMiss(this.session, table, key)) {
-            return null;
-        }
-
-        try (CFHandleLock cf = this.getLock(table)) {
-            return rocksdb().get(cf.get(), key);
-        } catch (RocksDBException e) {
-            throw new DBStoreException(e);
-        }
+        // A null is a genuine key-not-found: RocksDB raises an error (handled above) when a file
+        // it needs is missing, so restoring files cannot change this result and is not attempted.
+        return value;
     }
 
     @Override

@@ -48,18 +48,17 @@ import org.rocksdb.RocksDBException;
 /**
  * {@link SessionOperatorImpl#get(String, byte[])} read-miss / cloud-hydration behaviour.
  *
- * <p>The {@code get} path releases the column-family handle lock BEFORE invoking the
- * {@link RocksdbChangedListener#onReadMiss} hook (hydration may perform slow S3 I/O), then
- * re-acquires the lock for a single retry read. These tests pin that contract:
+ * <p>The {@code get} path invokes the {@link RocksdbChangedListener#onReadMiss} hook only when the
+ * read fails with a RocksDB error (a live SST missing on local disk), after releasing the
+ * column-family handle lock (hydration may perform slow S3 I/O), then re-acquires the lock for a
+ * single retry read. These tests pin that contract:
  *
  * <ul>
  *   <li>A hit returns the value without ever consulting a read-miss listener.</li>
- *   <li>A miss with no listener (or a listener that reports {@code false}) returns {@code null}
- *       without a retry read.</li>
- *   <li>A miss whose listener hydrates the key and reports {@code true} triggers the retry read
- *       and returns the hydrated value.</li>
- *   <li>A miss whose listener reports {@code true} but hydrates nothing still returns {@code null}
- *       from the retry read.</li>
+ *   <li>A null result is a genuine key-not-found: it is returned without consulting the listener,
+ *       because hydrating files cannot change it.</li>
+ *   <li>A failed read whose listener restores files is retried once; if nothing is restored, or
+ *       the retry fails too, the error propagates as {@link DBStoreException}.</li>
  * </ul>
  */
 public class SessionOperatorReadMissTest {
@@ -101,65 +100,22 @@ public class SessionOperatorReadMissTest {
     }
 
     @Test
-    public void testGetMissWithoutHydrationReturnsNull() throws Exception {
+    public void testGetMissReturnsNullWithoutConsultingReadMissListener() throws Exception {
         AtomicInteger readMissCalls = new AtomicInteger(0);
-        RocksdbChangedListener noHydration = new RocksdbChangedListener() {
+        RocksdbChangedListener hydrator = new RocksdbChangedListener() {
             @Override
             public boolean onReadMiss(RocksDBSession session, String table, byte[] key) {
                 readMissCalls.incrementAndGet();
-                return false;
+                return true;
             }
         };
-        withSession("miss-nohydrate", noHydration, session -> {
+        withSession("miss", hydrator, session -> {
             session.checkTable(TABLE);
 
             byte[] value = session.sessionOp().get(TABLE, bytes("absent"));
 
-            assertNull("a miss that is not hydrated must return null", value);
-            assertEquals("read-miss hook must fire exactly once on a miss",
-                         1, readMissCalls.get());
-        });
-    }
-
-    @Test
-    public void testGetMissTriggersHydrationThenReturnsHydratedValue() throws Exception {
-        RocksdbChangedListener hydrator = new RocksdbChangedListener() {
-            @Override
-            public boolean onReadMiss(RocksDBSession session, String table, byte[] key) {
-                // Simulate cloud hydration: the CF handle lock has already been released, so the
-                // listener may safely re-enter the session to write the missing key.
-                SessionOperator op = session.sessionOp();
-                op.prepare();
-                op.put(table, key, bytes("hydrated"));
-                op.commit();
-                return true;
-            }
-        };
-        withSession("miss-hydrate", hydrator, session -> {
-            session.checkTable(TABLE);
-
-            byte[] value = session.sessionOp().get(TABLE, bytes("cold"));
-
-            assertArrayEquals("retry read after hydration must observe the hydrated value",
-                              bytes("hydrated"), value);
-        });
-    }
-
-    @Test
-    public void testGetMissHydrationReportedButNoDataReturnsNull() throws Exception {
-        RocksdbChangedListener liar = new RocksdbChangedListener() {
-            @Override
-            public boolean onReadMiss(RocksDBSession session, String table, byte[] key) {
-                // Reports success but writes nothing — the retry read must still return null.
-                return true;
-            }
-        };
-        withSession("miss-emptyhydrate", liar, session -> {
-            session.checkTable(TABLE);
-
-            byte[] value = session.sessionOp().get(TABLE, bytes("cold"));
-
-            assertNull("retry read must return null when hydration produced no data", value);
+            assertNull("a key-not-found must return null", value);
+            assertEquals("read-miss hook must not fire on a null result", 0, readMissCalls.get());
         });
     }
 
@@ -284,8 +240,7 @@ public class SessionOperatorReadMissTest {
     }
 
     @Test
-    public void getMisses_hydrationSucceeds_butRetryThrows_propagatesAsDbStoreException()
-            throws Exception {
+    public void getMisses_returnsNullWithSingleReadAndNoHydration() throws Exception {
         RocksDB db = mock(RocksDB.class);
         RocksDBSession session = mock(RocksDBSession.class);
         ColumnFamilyHandle handle = mock(ColumnFamilyHandle.class);
@@ -294,27 +249,23 @@ public class SessionOperatorReadMissTest {
         when(session.getDB()).thenReturn(db);
         when(session.getCFHandleLock(TABLE)).thenReturn(cfLock);
         when(session.getGraphName()).thenReturn("db-mock");
-        // The initial read is a clean miss (null, no exception); the post-hydration retry throws.
-        when(db.get(any(ColumnFamilyHandle.class), any(byte[].class)))
-                .thenReturn(null)
-                .thenThrow(new RocksDBException("restored SST unreadable"));
+        // A clean miss: null, no exception.
+        when(db.get(any(ColumnFamilyHandle.class), any(byte[].class))).thenReturn(null);
 
+        AtomicInteger hydrations = new AtomicInteger();
         RocksdbChangedListener hydrator = new RocksdbChangedListener() {
             @Override
             public boolean onReadMiss(RocksDBSession s, String table, byte[] key) {
+                hydrations.incrementAndGet();
                 return true;
             }
         };
         RocksDBFactory.getInstance().addRocksdbChangedListener(hydrator);
         try {
             SessionOperator op = new SessionOperatorImpl(session);
-            try {
-                op.get(TABLE, bytes("cold"));
-                fail("expected DBStoreException when the post-hydration retry fails");
-            } catch (DBStoreException expected) {
-                // expected
-            }
-            verify(db, times(2)).get(any(ColumnFamilyHandle.class), any(byte[].class));
+            assertNull(op.get(TABLE, bytes("cold")));
+            assertEquals("hydration must not be attempted for a null result", 0, hydrations.get());
+            verify(db, times(1)).get(any(ColumnFamilyHandle.class), any(byte[].class));
         } finally {
             RocksDBFactory.getInstance().removeRocksdbChangedListener(hydrator);
         }

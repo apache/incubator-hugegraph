@@ -1687,6 +1687,95 @@ public class RocksDBFactoryTest {
     }
 
     @Test
+    public void testResolveOpenPathRedirectsOnlyToSiblingsWithoutLocalDb() throws Exception {
+        Path parent = Files.createTempDirectory("hg-open-redirect-");
+        Path other = Files.createTempDirectory("hg-open-redirect-other-");
+        String moved = "redirected";
+        String rejected = "rejectedredirect";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, String> openedAt = new ConcurrentHashMap<>();
+        RocksdbChangedListener redirector = new RocksdbChangedListener() {
+            @Override
+            public String resolveOpenPath(String db, String dbPath) {
+                if (moved.equals(db)) {
+                    return parent.resolve(moved + "_4").toString();
+                }
+                if (rejected.equals(db)) {
+                    return other.resolve(rejected + "_4").toString(); // not a sibling
+                }
+                return dbPath;
+            }
+
+            @Override
+            public void onDBOpening(String db, String dbPath) {
+                openedAt.put(db, dbPath);
+            }
+        };
+        factory.addRocksdbChangedListener(redirector);
+        try {
+            RocksDBSession session = factory.createGraphDB(parent.toString(), moved, 0);
+            assertEquals(parent.resolve(moved + "_4").toString(), session.getDbPath());
+            assertEquals("onDBOpening must see the redirected path",
+                         session.getDbPath(), openedAt.get(moved));
+            session.close();
+            factory.releaseGraphDB(moved);
+
+            // The directory now holds a DB (CURRENT), so the next open is not redirected again.
+            openedAt.clear();
+            RocksDBSession reopened = factory.createGraphDB(parent.toString(), moved, 0);
+            assertEquals(parent.resolve(moved + "_4").toString(), reopened.getDbPath());
+            reopened.close();
+            factory.releaseGraphDB(moved);
+
+            RocksDBSession kept = factory.createGraphDB(parent.toString(), rejected, 0);
+            assertEquals(parent.resolve(rejected).toString(), kept.getDbPath());
+            kept.close();
+            factory.releaseGraphDB(rejected);
+        } finally {
+            factory.removeRocksdbChangedListener(redirector);
+            deleteRecursively(parent.toFile());
+            deleteRecursively(other.toFile());
+        }
+    }
+
+    @Test
+    public void testOnDbClosingFiresWhileSessionIsStillOpen() throws Exception {
+        Path parent = Files.createTempDirectory("hg-db-closing-");
+        String released = "closingrelease";
+        String releasedAll = "closingreleaseall";
+        RocksDBFactory factory = RocksDBFactory.getInstance();
+        Map<String, Boolean> openAtClosing = new ConcurrentHashMap<>();
+        RocksdbChangedListener probe = new RocksdbChangedListener() {
+            @Override
+            public void onDBClosing(String db) {
+                // A final publish needs a live session: captureMetadataSnapshot must still work.
+                RocksDBFactory.MetadataSnapshot snap = factory.captureMetadataSnapshot(db);
+                openAtClosing.put(db, snap != null);
+                if (snap != null) {
+                    snap.cleanup();
+                }
+            }
+        };
+        factory.addRocksdbChangedListener(probe);
+        try {
+            factory.createGraphDB(parent.toString(), released, 0).close();
+            factory.createGraphDB(parent.toString(), releasedAll, 0).close();
+
+            factory.releaseGraphDB(released);
+            assertEquals(Boolean.TRUE, openAtClosing.get(released));
+            assertFalse(openAtClosing.containsKey(releasedAll));
+
+            factory.releaseAllGraphDB();
+            assertEquals("releaseAllGraphDB must notify before shutting sessions down",
+                         Boolean.TRUE, openAtClosing.get(releasedAll));
+        } finally {
+            factory.removeRocksdbChangedListener(probe);
+            setClosing(factory, false);
+            deleteRecursively(parent.toFile());
+        }
+    }
+
+    @Test
     public void testCreateGraphDbDiscardsSessionWhenFactoryClosesDuringCreation()
             throws Exception {
         Path parent = Files.createTempDirectory("hg-create-closing-");

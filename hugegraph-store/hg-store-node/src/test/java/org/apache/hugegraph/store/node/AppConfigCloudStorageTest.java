@@ -184,6 +184,27 @@ public class AppConfigCloudStorageTest {
     }
 
     /**
+     * The same provider key from application.yml ({@code secret-key}) and from an env var
+     * ({@code CLOUD_STORAGE_S3_SECRET_KEY}, bound as {@code secret.key}) normalise to one key. That
+     * must not fail startup, and the env var wins, as it does for every other Spring property.
+     */
+    @Test
+    public void testProviderPropertyFromYamlAndEnvVarPrefersEnvVar() {
+        mockEnv.setProperty("cloud.storage.enabled", "true");
+        mockEnv.setProperty("cloud.storage.s3.secret-key", "yaml-secret");
+        mockEnv.setProperty("cloud.storage.s3.bucket", "yaml-bucket");
+        Map<String, Object> envVarProps = new HashMap<>();
+        envVarProps.put("CLOUD_STORAGE_S3_SECRET_KEY", "env-var-secret");
+        mockEnv.getPropertySources().addFirst(new SystemEnvironmentPropertySource(
+                StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME, envVarProps));
+
+        CloudStorageConfig cfg = AppConfig.bindCloudStorageConfig(mockEnv);
+
+        assertEquals("env-var-secret", cfg.getProviderProperties().get("secret-key"));
+        assertEquals("yaml-bucket", cfg.getProviderProperties().get("bucket"));
+    }
+
+    /**
      * Provider properties are only bound (and their placeholders only resolved) when cloud storage
      * is enabled: a disabled node must start even if the provider namespace references an
      * unresolvable placeholder such as a missing credential env var.

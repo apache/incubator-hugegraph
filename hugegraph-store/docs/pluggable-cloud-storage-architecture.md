@@ -93,7 +93,8 @@ Notes:
 - Metadata sync publishes a consistent `CURRENT`/`MANIFEST`/`OPTIONS` snapshot so a full-disk-loss node can reopen from cloud. Capture forces a MemTable flush so the un-flushed tail is persisted into an SST and mirrored (the RocksDB WAL is disabled under Raft — the Raft log is the tail's durability source — so a flush is the only path that pushes recent writes to cloud).
 - Metadata sync is always enabled when cloud storage is enabled.
 - Metadata sync is triggered by storage events. Each SST upload marks its DB dirty, and a fixed-delay drain (`metadata-sync-debounce-ms`) publishes each dirty DB once per interval; event-driven publishes (delete guard, DB open) are never coalesced.
-- Compaction completion (`onCompacted`) only marks the DB metadata-dirty; the publish runs on the single `cloud-metadata-sync` thread. `onTableFileDeleted` still publishes metadata and then deletes the remote SST inline on the RocksDB callback thread, to preserve publish-before-delete ordering. A failed publish backs off exponentially **per DB** (base `max(1s, metadata-sync-debounce-ms)`, doubling per consecutive failure, capped at 5 minutes) instead of redoing a checkpoint + upload every interval; a success clears the backoff.
+- Compaction completion (`onCompacted`) only marks the DB metadata-dirty; the publish runs on the single `cloud-metadata-sync` thread. `onTableFileDeleted` only queues the superseded SST; the live-set check, the metadata publish and the remote delete run on the same thread, in publish-before-delete order, with one metadata publish per DB for all deletes queued at that point. A failed publish backs off exponentially **per DB** (base `max(1s, metadata-sync-debounce-ms)`, doubling per consecutive failure, capped at 5 minutes) instead of redoing a checkpoint + upload every interval; a success clears the backoff. The backoff covers both the drain and held superseded-SST deletes, so the 500 ms delete retry does not re-publish a DB whose publishes are failing.
+- **Publish before close.** When a DB is released (a partition moving away, or `releaseAllGraphDB()` at shutdown), RocksDB listeners get `onDBClosing` while the session is still open, and a DB with an unpublished metadata change is published then. At shutdown the store engine releases every DB before the cloud listener is closed, so a publish deferred to `close()` could no longer capture the DB. A DB being deleted is not published.
 - The whole-file retry queue dedupes by `(db, remoteKey)`: a publish that re-checks an already-queued upload does not enqueue a second retry for the same object.
 - Uploads that exhaust whole-file retries are given up on: logged at ERROR, counted in `cloud_storage_uploads_given_up_total`, and re-uploaded by startup SST backfill.
 - Set a stable `cloud.storage.node-id` for production so the cloud key scope survives IP/hostname changes and local disk loss (see "Cloud key scope resolution").
@@ -132,8 +133,8 @@ metadata / recovery-point lag, not a byte-loss hole**:
 - The newest uploaded SST(s) may exist in cloud but not yet be *referenced* by the mirrored MANIFEST
   for about one `metadata-sync-debounce-ms` interval (default 1 s), longer only while publishes
   fail. The dirty DB stays marked until a publish succeeds, so the final state is always published
-  even if writes then stop; `onCompacted` / `onDBCreated` / delete-guard / shutdown flush publish
-  **inline** (never coalesced).
+  even if writes then stop; `onDBCreated`, the delete guard and DB release (`onDBClosing`)
+  publish without coalescing.
 - This lag becomes observable data loss **only** under a total, simultaneous loss of *all* Raft
   peers' local state followed by a cloud-only restore that lands inside that ~1 s window —
   then the newest unreferenced SSTs are orphans not in the restored set.
@@ -253,13 +254,14 @@ CloudStorageEventListener
 ### 3b) SST Delete Flow
 
 ```text
-SST DELETE (onTableFileDeleted) — runs inline on the RocksDB callback thread
+SST DELETE (onTableFileDeleted) — queued on the RocksDB callback thread, processed on cloud-metadata-sync
 
 RocksDB compaction completes: SST1 + SST2 -> MERGED_SST
   |
   | 1) onTableFileDeleted(db, cf, filePath=SST1 or SST2)
+  |      -> queue the delete, schedule processDeferredSstDeletes; no cloud I/O on this thread
   v
-CloudStorageEventListener
+CloudStorageEventListener (cloud-metadata-sync thread), once per DB per pass:
   |
   | 2) ensureLiveSetUploaded(provider, dbName)
   |      -> syncTracker.allConfirmed(dbName, liveFiles)   <- single lock, short-circuit on first miss
@@ -277,12 +279,14 @@ CloudStorageEventListener
   |         * uploads OPTIONS / MANIFEST / CURRENT atomically
   |      If snapshot fails: return false -> skip delete (hold old SST)
   |
-  | 4) [MANIFEST published] provider.deleteFile(remoteKey)  <- safe to remove old SST
+  | 4) [MANIFEST published] provider.deleteFile(remoteKey)  <- for every queued SST of the DB
   v
-Object Storage: old SST deleted
+Object Storage: old SST(s) deleted
 
-Any "hold" above queues the delete as a deferred task, retried on the
-cloud-metadata-sync thread every 500 ms.
+Any "hold" above keeps the delete queued; it is retried on the
+cloud-metadata-sync thread every 500 ms. Deletes still queued when the
+listener closes are not persisted: the superseded objects stay in cloud
+as unreferenced orphans (no data loss).
 ```
 
 ### Write-path notes
@@ -298,7 +302,7 @@ cloud-metadata-sync thread every 500 ms.
   This guarantees key uniqueness across nodes even when multiple Store nodes share the same bucket.
 - After every successful upload, `syncTracker.markConfirmed(dbName, fileNumber)` sets the corresponding
   bit in a per-`dbName` in-memory bitmap (`CloudSyncTracker`). This bitmap is the fast path used by the
-  delete guard (`allConfirmed`) to avoid per-file cloud API calls on the hot compaction thread.
+  delete guard (`allConfirmed`) to avoid per-file cloud API calls on every delete pass.
 - The delete guard (`ensureLiveSetUploaded`) checks the **entire current live SST set**, not just the file
   being deleted. Reason: the old SST being confirmed says nothing about whether its compaction outputs
   (replacement files) are durable. Only when every live file is confirmed does the delete proceed.
@@ -331,7 +335,10 @@ Two hydration modes exist:
 1. **Startup pre-hydration (`onDBOpening`)**: download missing remote files before serving,
    then seed the sync-tracker bitmap from the remote listing so the first post-restart compaction
    can use the fast-path bitmap check instead of issuing per-file cloud API calls.
-2. **Read-miss hydration (`onReadMiss`)**: if local read misses, fetch missing SST from cloud, ingest, and retry.
+2. **Read-miss hydration (`onReadMiss`)**: if a local read fails because a live SST is missing on disk,
+   download the missing SST back to its original path and retry the read once. A read that returns no
+   value is a genuine key-not-found (RocksDB raises an error when a file it needs is missing), so it
+   does not trigger hydration.
 
 ```text
 READ PATH (ANSI)
@@ -342,7 +349,7 @@ Read request
   v
 RocksDB
   |
-  | 2) miss -> onReadMiss(session, table, key)
+  | 2) read error (missing live SST) -> onReadMiss(session, table, key)
   v
 CloudStorageEventListener
   |
@@ -397,8 +404,9 @@ onDBOpening(dbName)
 
 ### Read-path notes
 
-- **Open blocked by a pending delete.** If a pending-delete marker exists for the DB's prefix, `onDBOpening` makes three bounded synchronous cleanup attempts. If the purge still cannot complete, the open fails with `IllegalStateException("Cloud open blocked ...")` and the asynchronous retry is re-armed; opening is never allowed to proceed over a prefix that still holds the deleted generation. This check runs even when `startup-hydration-enabled=false`.
-- **Known limitation: version-suffixed local paths.** The node opens a DB at the local path chosen by `RocksDBSession` (which may carry a version suffix `<name>_<ver>`). The cloud plugin does not redirect the open to a remote version-suffixed sibling: a node that lost its disk hydrates only the prefix of the default path, so a DB previously stored under a suffixed path is not restored from its sibling prefix automatically.
+- **Open blocked by a pending delete.** If a pending-delete marker exists for the DB's prefix, `onDBOpening` makes three bounded synchronous cleanup attempts. If the purge still cannot complete, the open fails with `IllegalStateException("Cloud open blocked ...")` and the asynchronous retry is re-armed; opening is never allowed to proceed over a prefix that still holds the deleted generation. Cleanup is complete only once both the prefix purge and the deletion of the sibling tombstone succeed; until then the marker stays and the open stays blocked, because a tombstone left next to a re-created DB would make a later open purge that DB's live objects. This check runs even when `startup-hydration-enabled=false`.
+- **Leftover tombstone at open.** If a tombstone exists without a local marker (for example the marker was lost with the disk), `onDBOpening` purges the prefix and deletes the tombstone before the DB can hydrate from or upload into it, and blocks the open if either step fails. This also runs when `startup-hydration-enabled=false`; in that mode a failed tombstone check is logged and the open proceeds, since nothing is read from cloud. Every successful purge also drops the purged DB's sync-tracker confirmations, so the next metadata publish re-uploads the SSTs it references.
+- **Version-suffixed directories.** A partition can move to a version-suffixed directory (`<name>_<v1>` or `<name>_<v1>_<v2>`), and its objects then live under that prefix. When the directory chosen for a DB holds no local DB (no `CURRENT`), the listener lists the remote siblings that share the base name (one `listFiles(<parent>/<name>)` call, a plain key prefix) and the DB is opened at the newest restorable one, in the same version order `RocksDBSession` uses locally. A sibling is restorable when it has a remote `CURRENT`, no `_DELETED` tombstone and no local pending-delete marker. The redirect only applies with `startup-hydration-enabled=true`, only to a sibling of the chosen directory that is not awaiting deletion, and never when a local DB exists. If the listing fails, the chosen directory is kept and its hydration applies the usual failure rules.
 - **Sweeps on open.** Leftover `<db>_cloudmeta_*` metadata checkpoint directories (from a crash during a snapshot capture) and `.hyd-tmp-*` partial hydration download files are deleted when the DB is opened.
 - All `listFiles` calls use the **`<path-prefix>/<store-scope-prefix>/`** namespace so each store node
   only sees and downloads its own SST files, even when multiple nodes share the same bucket.
@@ -407,7 +415,7 @@ onDBOpening(dbName)
 - Non-SST objects are ignored for read-miss ingestion.
 - After startup pre-hydration, `syncTracker` is fully seeded from the remote listing. Subsequent
   compaction delete guards use the in-memory bitmap (`allConfirmed`) and do **not** issue
-  `provider.fileExists()` round-trips on the hot compaction thread.
+  `provider.fileExists()` round-trips per delete.
 
 ### Scope: managed delete vs accidental local loss
 
@@ -544,13 +552,13 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 
 ### Delete failures (non-fatal)
 
-- `onTableFileDeleted` delete failure is logged and processing continues.
+- A failed superseded-SST delete is logged and stays queued for retry; processing continues.
 - Impact is stale/orphaned cloud objects, not immediate read/write unavailability.
 
 ### Hydration failures
 
 - Pre-hydration/list/download failures throw `IllegalStateException` and stop the flow for that DB open attempt.
-- Read-miss hydration failures are logged and return `false`; caller falls back to original miss behavior.
+- Read-miss hydration failures are logged and return `false`; the original read error propagates.
 
 ### Provider lifecycle / config failures
 
@@ -569,7 +577,7 @@ cloud.storage.upload-retry-max-attempts: 0   # No immediate retries; rely on del
 
 ### Delete guard failure (live set not fully durable)
 
-- Before deleting a superseded SST from cloud, `onTableFileDeleted` verifies the entire current live SST set is confirmed present in cloud (`ensureLiveSetUploaded`).
+- Before deleting a superseded SST from cloud, the queued-delete pass (`processDeferredSstDeletes`) verifies the entire current live SST set is confirmed present in cloud (`ensureLiveSetUploaded`).
 - If any live SST cannot be confirmed durable (e.g. a prior upload failed), the delete is held with a warning log and stays queued.
 - The unconfirmed file remains on disk. The deferred delete is retried every 500 ms on the `cloud-metadata-sync` thread, and each attempt re-attempts upload for all unconfirmed files.
 - **Observability**: Metrics `cloud_storage_delete_guard_reupload_count` (per DB) and `cloud_storage_confirmed_files_total` track the frequency and sync state. Logs show which files are unconfirmed and why the delete was held.
@@ -780,8 +788,9 @@ public interface CloudStorageProvider {
     boolean fileExists(String remoteKey) throws IOException;
     
     /**
-     * List all remote files under the given directory prefix.
-     * Returns list of keys (with prefix stripped).
+     * List all remote keys that start with the given key prefix (a plain string match, as in
+     * S3 ListObjectsV2: pass a trailing "/" to list one directory). Returns keys relative to
+     * the provider root (provider path prefix stripped).
      */
     List<String> listFiles(String remoteDirPrefix) throws IOException;
     

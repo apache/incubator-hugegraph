@@ -187,6 +187,55 @@ public class CloudRecoveryIntegrationTest {
         assertEquals(expected.size(), recoveredCount, "all keys must be recovered from cloud");
     }
 
+    /**
+     * A partition that lives in a version-suffixed directory ({@code <name>_<v>}) mirrors its
+     * objects under that prefix. After a disk loss the default path holds nothing locally or in
+     * cloud, so the open must move to the newest restorable remote sibling and recover from it.
+     */
+    @Test
+    public void testReopenAfterDiskLossRestoresVersionSuffixedDirectory() throws IOException {
+        this.dbName = "vrec";
+        InMemoryCloudStore cloud = new InMemoryCloudStore();
+        this.listener = CloudStorageTestFactory.newListener(cloud,
+                Collections.singletonList(this.baseDir.toString()),
+                true, 0L, null, new CloudSyncTracker());
+        factory.addRocksdbChangedListener(this.listener);
+
+        // An existing versioned directory is what RocksDBSession picks over the default path.
+        Files.createDirectories(this.baseDir.resolve(this.dbName + "_7"));
+        RocksDBSession session = factory.createGraphDB(this.baseDir.toString(), this.dbName, 0);
+        String versionedPath = session.getDbPath();
+        assertTrue(versionedPath.endsWith(this.dbName + "_7"), versionedPath);
+        session.checkTable("t");
+        SessionOperator op = session.sessionOp();
+        op.prepare();
+        for (int i = 0; i < 100; i++) {
+            op.put("t", ("key-" + i).getBytes(StandardCharsets.UTF_8),
+                   ("value-" + i).getBytes(StandardCharsets.UTF_8));
+        }
+        op.commit();
+        session.flush(true);
+        assertTrue(this.listener.syncMetadataSnapshotInline(cloud, this.dbName));
+        assertTrue(cloud.fileExists(this.dbName + "_7/CURRENT"));
+
+        // Disk loss: the versioned directory disappears with everything else.
+        session.close();
+        factory.releaseGraphDB(this.dbName);
+        deleteRecursively(new File(versionedPath));
+
+        RocksDBSession recovered = factory.createGraphDB(this.baseDir.toString(), this.dbName, 0);
+        assertEquals(versionedPath, recovered.getDbPath(),
+                     "the open must move to the versioned directory the cloud copy lives under");
+        recovered.checkTable("t");
+        SessionOperator rop = recovered.sessionOp();
+        for (int i = 0; i < 100; i++) {
+            assertArrayEquals(("value-" + i).getBytes(StandardCharsets.UTF_8),
+                              rop.get("t", ("key-" + i).getBytes(StandardCharsets.UTF_8)),
+                              "recovered value mismatch for key-" + i);
+        }
+        recovered.close();
+    }
+
     // =========================================================================
     // Real RocksDB JNI callback: failure is given up on, session stays stable
     // =========================================================================
@@ -335,9 +384,9 @@ public class CloudRecoveryIntegrationTest {
 
         @Override
         public List<String> listFiles(String remoteDirPrefix) {
-            String prefix = remoteDirPrefix.endsWith("/") ? remoteDirPrefix : remoteDirPrefix + "/";
+            // Plain key-prefix match, as the CloudStorageProvider contract (and S3) defines.
             return objects.keySet().stream()
-                          .filter(k -> k.startsWith(prefix))
+                          .filter(k -> k.startsWith(remoteDirPrefix))
                           .collect(Collectors.toList());
         }
 
