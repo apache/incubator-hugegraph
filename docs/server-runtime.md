@@ -903,6 +903,22 @@ Server graph-space responses retain the integer GB `storage_used` field and add
 `storage_used_kb` for consumers that need to display usage below one GB. The
 `storage_percent` ratio is calculated from that precise usage, without rounding it
 to whole percentage points. Older clients can continue reading `storage_used`.
+Older Servers, including 1.7, preserve the additional `storage_used_kb` field as a
+string when rewriting a space. This Server accepts both its integer and string
+forms, allowing metadata to survive a rolling upgrade or rollback and re-upgrade.
+Missing, negative or invalid precision values fall back to the original GB usage.
+
+Older PD quota cycles stored some `storage_limit` values in KB. These untagged
+records are not automatically converted: the same number could be a legitimate GB
+quota. After **all PD replicas** are upgraded, an administrator can normalize each
+affected space with one ordinary Server `PUT /graphspaces/{name}` update. First read
+the current **Server** space configuration, then submit the unchanged quotas,
+including its `storage_limit` in GB and existing compute limits, using the update
+format below. Do not copy or divide the raw PD limit to infer the intended quota.
+This rewrites the PD limit in GB while preserving usage; it is an explicit
+configuration write, not a required automatic migration. Until then PD
+`GET /graph-spaces` can report mixed limit units. Storage enforcement reads the
+Server configuration and is unaffected by the stale PD reporting field.
 
 After a graph space is deleted, each Server evicts its cached space and service
 entries on the metadata removal event. Peers do not repeat destructive backend
@@ -928,6 +944,12 @@ explicit `compute_cpu_limit: 0` or `compute_memory_limit: 0` restores inheritanc
 that field. Responses retain the raw zero marker so editing clients can preserve it.
 The bootstrapped `DEFAULT` space keeps explicit compute limits of 128 cores / 128 GB;
 existing positive compute limits are not converted to inheritance.
+Upgrade the Java client together with the Server before sending partial space
+updates (paired [Toolchain change](https://github.com/apache/hugegraph-toolchain/pull/834)).
+Older clients send zero for omitted compute fields; the new Server interprets an
+explicit zero as restoring inheritance and cannot distinguish that from an omitted
+SDK property. Until clients are upgraded, use read-modify-write and explicitly send
+the current compute limits to preserve independent positive values.
 When OLTP and OLAP share a Kubernetes namespace, their quotas are added together;
 separate namespaces receive the respective resource limits.
 

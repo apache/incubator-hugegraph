@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.unit.core;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +41,9 @@ import org.apache.hugegraph.core.GraphManager;
 import org.apache.hugegraph.event.EventHub;
 import org.apache.hugegraph.event.EventHub.NotifyResult;
 import org.apache.hugegraph.exception.HugeException;
+import org.apache.hugegraph.meta.MetaDriver;
 import org.apache.hugegraph.meta.MetaManager;
+import org.apache.hugegraph.meta.managers.SpaceMetaManager;
 import org.apache.hugegraph.pd.client.PDClient;
 import org.apache.hugegraph.pd.client.PDConfig;
 import org.apache.hugegraph.space.GraphSpace;
@@ -59,6 +62,45 @@ import org.mockito.Mockito;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class GraphManagerClearGraphSpaceTest {
+
+    @Test
+    public void testStartupLoadsAndRewritesRecordFromOlderServer() throws IOException {
+        GraphSpace current = new GraphSpace("DEFAULT");
+        current.setStorageUsedKb(512L * 1024L);
+        AtomicReference<String> persisted = new AtomicReference<>(
+                LegacyGraphSpaceCodec.rewrite(JsonUtil.toJson(current)));
+        String key = "HUGEGRAPH/hg/GRAPHSPACE/CONF/DEFAULT";
+        MetaDriver driver = Mockito.mock(MetaDriver.class);
+        Mockito.when(driver.scanWithPrefix("HUGEGRAPH/hg/GRAPHSPACE/CONF"))
+               .thenAnswer(invocation -> Map.of(key, persisted.get()));
+        Mockito.when(driver.get(key)).thenAnswer(invocation -> persisted.get());
+        Mockito.doAnswer(invocation -> {
+            persisted.set(invocation.getArgument(1));
+            return null;
+        }).when(driver).put(Mockito.eq(key), Mockito.anyString());
+        SpaceMetaManager spaces = new SpaceMetaManager(driver, "hg");
+        MetaManager meta = Mockito.mock(MetaManager.class, Mockito.CALLS_REAL_METHODS);
+        Whitebox.setInternalState(meta, "spaceMetaManager", spaces);
+        HugeConfig config = new HugeConfig(new PropertiesConfiguration());
+        GraphManager manager = new GraphManager(config, Mockito.mock(EventHub.class));
+        try {
+            Whitebox.setInternalState(manager, "metaManager", meta);
+            Whitebox.setInternalState(manager, "PDExist", true);
+            // Exercise both startup readers, with the real metadata decoder.
+            Whitebox.invoke(GraphManager.class, "createDefaultGraphSpaceIfNeeded", manager, config);
+            Whitebox.invoke(GraphManager.class, "loadGraphSpaces", manager);
+            GraphSpace loaded = manager.graphSpace("DEFAULT");
+            Assert.assertEquals(512L * 1024L, loaded.info().get("storage_used_kb"));
+            meta.updateGraphSpaceConfig("DEFAULT", loaded);
+            Assert.assertTrue(JsonUtil.fromJson(persisted.get(), Map.class)
+                                      .get("storage_used_kb") instanceof Number);
+            Assert.assertEquals(512L * 1024L, meta.graphSpace("DEFAULT").info().get("storage_used_kb"));
+            Mockito.verify(driver, Mockito.times(2)).scanWithPrefix("HUGEGRAPH/hg/GRAPHSPACE/CONF");
+            Mockito.verify(meta, Mockito.never()).addGraphSpaceConfig(Mockito.anyString(), Mockito.any());
+        } finally {
+            manager.close();
+        }
+    }
 
     /**
      * Graph and service keys are "{graphspace}-{name}", and a graph space
