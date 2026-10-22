@@ -37,7 +37,9 @@ import org.apache.hugegraph.backend.store.rocksdb.RocksDBSnapshotRestoreTest;
 import org.apache.hugegraph.backend.tx.GraphIndexTransactionTest;
 import org.apache.hugegraph.backend.tx.GraphTransactionTest;
 import org.apache.hugegraph.core.memory.MemoryManageTest;
+import org.apache.hugegraph.job.EphemeralJobBuilderTest;
 import org.apache.hugegraph.job.algorithm.AlgorithmConsumerLifecycleTest;
+import org.apache.hugegraph.job.system.DeleteExpiredJobTest;
 import org.apache.hugegraph.meta.EtcdMetaDriverTest;
 import org.apache.hugegraph.meta.MetaManagerSchemaCacheClearEventTest;
 import org.apache.hugegraph.meta.managers.AuthMetaManagerTest;
@@ -252,6 +254,8 @@ import org.junit.runners.Suite;
         ServerInfoManagerTest.class,
         TaskSchedulerServerInfoTest.class,
         TaskCallableTest.class,
+        EphemeralJobBuilderTest.class,
+        DeleteExpiredJobTest.class,
         HugeGraphAuthProxyTest.class,
         SchemaElementTest.class,
         HugeGraphTestInfrastructureTest.class,
