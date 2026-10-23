@@ -102,6 +102,7 @@ public class GraphIdCheckCommandTest {
     @Test
     public void testInvalidArgumentsDoNotRunStore() {
         assertEquals(0, GraphIdCheckCommand.run("--help"));
+        assertEquals(2, GraphIdCheckCommand.run());
         assertEquals(2, GraphIdCheckCommand.run("--execute"));
         assertEquals(2, GraphIdCheckCommand.run("--check", "--check"));
         assertEquals(2, GraphIdCheckCommand.run("--check", "--data-path"));
