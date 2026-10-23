@@ -41,6 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
         GraphSpaceUsageTest.class,
+        GraphSpaceCleanupTest.class,
         RaftStateMachineTest.class,
         MetadataKeyHelperTest.class,
         IdMetaStoreReadIndexTest.class,

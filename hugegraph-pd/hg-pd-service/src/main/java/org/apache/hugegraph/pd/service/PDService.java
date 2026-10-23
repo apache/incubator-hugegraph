@@ -1147,6 +1147,24 @@ public class PDService extends PDGrpc.PDImplBase implements RaftStateListener {
         observer.onCompleted();
     }
 
+    @Override
+    public void deleteGraphSpace(Pdpb.DeleteGraphSpaceRequest request,
+                                 StreamObserver<Pdpb.DeleteGraphSpaceResponse> observer) {
+        if (!isLeader()) {
+            redirectToLeader(PDGrpc.getDeleteGraphSpaceMethod(), request, observer);
+            return;
+        }
+        Pdpb.DeleteGraphSpaceResponse.Builder response = Pdpb.DeleteGraphSpaceResponse.newBuilder();
+        try {
+            configService.deleteGraphSpace(request.getGraphSpaceName(), partitionService);
+            response.setHeader(okHeader);
+        } catch (PDException e) {
+            response.setHeader(newErrorHeader(e));
+        }
+        observer.onNext(response.build());
+        observer.onCompleted();
+    }
+
     /**
      * <pre>
      * Data fragmentation

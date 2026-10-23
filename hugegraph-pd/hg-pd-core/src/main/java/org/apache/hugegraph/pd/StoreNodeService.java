@@ -1017,7 +1017,9 @@ public class StoreNodeService {
             }
             // Statistics must also advance when no Server config exists under the default cluster.
             try {
-                configService.setGraphSpaceUsage(spaceName, size);
+                if (configService.refreshGraphSpaceUsage(spaceName, size, partitionService) == null) {
+                    continue;
+                }
             } catch (PDException e) {
                 log.error("Failed to update usage of graph space '{}'", spaceName, e);
             }
@@ -1034,6 +1036,9 @@ public class StoreNodeService {
                 continue;
             }
             String graphSpace = splits[0];
+            if (!limits.containsKey(graphSpace)) {
+                continue;
+            }
             Metapb.GraphState gsOld = g.getGraphState();
             GraphMode gmOld = gsOld != null ? gsOld.getMode() : GraphMode.ReadWrite;
             GraphMode gmNew = limits.get(
@@ -1046,7 +1051,9 @@ public class StoreNodeService {
                 GraphState gsNew = stateBuilder.build();
                 Metapb.Graph newGraph = g.toBuilder().setGraphState(gsNew)
                                          .build();
-                partitionService.updateGraph(newGraph);
+                if (partitionService.updateGraphIfExists(newGraph) == null) {
+                    continue;
+                }
                 statusListeners.forEach(listener -> {
                     listener.onGraphChange(newGraph, gsOld, gsNew);
                 });

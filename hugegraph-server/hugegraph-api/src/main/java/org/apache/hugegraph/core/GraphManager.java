@@ -1153,6 +1153,14 @@ public final class GraphManager {
                                     this.serviceGraphSpace);
         }
         this.clearGraphSpace(name);
+        MetaDriver metaDriver = this.metaManager.metaDriver();
+        if (metaDriver instanceof PdMetaDriver) {
+            try {
+                ((PdMetaDriver) metaDriver).pdClient().deleteGraphSpace(name);
+            } catch (PDException | StatusRuntimeException e) {
+                throw new HugeException("Failed to remove graph space '%s' statistics from PD", e, name);
+            }
+        }
         this.metaManager.removeGraphSpaceConfig(name);
         this.metaManager.clearGraphSpaceList(name);
         this.metaManager.notifyGraphSpaceRemove(name);

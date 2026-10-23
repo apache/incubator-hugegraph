@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.hugegraph.pd.common.PDException;
 import org.apache.hugegraph.pd.config.PDConfig;
 import org.apache.hugegraph.pd.grpc.Metapb;
+import org.apache.hugegraph.pd.grpc.Pdpb;
 import org.apache.hugegraph.pd.meta.ConfigMetaStore;
 import org.apache.hugegraph.pd.meta.MetadataFactory;
 import org.apache.hugegraph.pd.raft.RaftStateListener;
@@ -91,6 +92,38 @@ public class ConfigService implements RaftStateListener {
         synchronized (GRAPH_SPACE_LOCK) {
             return this.setGraphSpace(this.graphSpaceBuilder(name).setUsedSize(usedSize).build());
         }
+    }
+
+    /**
+     * Recheck current PD graphs before recreating missing usage. A quota collection may
+     * have started before the Server removed the graphs and their space's statistics.
+     */
+    public Metapb.GraphSpace refreshGraphSpaceUsage(String name, long usedSize,
+                                                   PartitionService partitions) throws PDException {
+        synchronized (GRAPH_SPACE_LOCK) {
+            if (this.meta.getGraphSpaceExact(name) == null && !hasGraphs(name, partitions)) {
+                return null;
+            }
+            return this.setGraphSpaceUsage(name, usedSize);
+        }
+    }
+
+    public void deleteGraphSpace(String name, PartitionService partitions) throws PDException {
+        if (name == null || name.isEmpty() || name.indexOf('/') >= 0) {
+            throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE, "Invalid graph space name");
+        }
+        synchronized (GRAPH_SPACE_LOCK) {
+            if (hasGraphs(name, partitions)) {
+                throw new PDException(Pdpb.ErrorType.UNKNOWN_VALUE,
+                                      "Remove the graph space's graphs before its statistics");
+            }
+            this.meta.deleteGraphSpace(name);
+        }
+    }
+
+    private static boolean hasGraphs(String name, PartitionService partitions) throws PDException {
+        String prefix = name + "/";
+        return partitions.getGraphs().stream().anyMatch(graph -> graph.getGraphName().startsWith(prefix));
     }
 
     private Metapb.GraphSpace.Builder graphSpaceBuilder(String name) throws PDException {
