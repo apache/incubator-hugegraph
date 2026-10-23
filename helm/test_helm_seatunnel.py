@@ -27,6 +27,8 @@ import yaml
 
 
 CHART = Path(__file__).resolve().parent / "hugegraph"
+HELM_TEMPLATE_TIMEOUT_SECONDS = 120
+HELM_PACKAGE_TIMEOUT_SECONDS = 300
 
 
 def matches(selector, labels):
@@ -48,15 +50,23 @@ class SeaTunnelChartTest(unittest.TestCase):
         if shutil.which("helm") is None:
             raise RuntimeError("Helm is required for the SeaTunnel integration regression")
 
+    def run_helm(self, arguments, timeout, check=False):
+        command = ["helm", *arguments]
+        try:
+            return subprocess.run(command, check=check, capture_output=True,
+                                  text=True, timeout=timeout)
+        except subprocess.TimeoutExpired as error:
+            self.fail(f"{' '.join(command)} timed out after {timeout} seconds: {error}")
+
     def render(self, seatunnel=None, chart=CHART, namespace="default", **values):
         if seatunnel is not None:
             values["seatunnel"] = {"enabled": True, **seatunnel}
         with tempfile.TemporaryDirectory(prefix="seatunnel-values-") as directory:
             configuration = Path(directory) / "values.yaml"
             configuration.write_text(yaml.safe_dump(values))
-            result = subprocess.run(["helm", "template", "fixture", str(chart),
-                                     "--namespace", namespace, "-f", str(configuration)],
-                                    capture_output=True, text=True)
+            result = self.run_helm(["template", "fixture", str(chart),
+                                    "--namespace", namespace, "-f", str(configuration)],
+                                   HELM_TEMPLATE_TIMEOUT_SECONDS)
         return result
 
     def documents(self, seatunnel=None, chart=CHART, namespace="default", **values):
@@ -177,8 +187,8 @@ class SeaTunnelChartTest(unittest.TestCase):
 
     def test_packaged_chart_has_both_modes_without_seatunnel_dependency(self):
         with tempfile.TemporaryDirectory(prefix="seatunnel-package-") as directory:
-            subprocess.run(["helm", "package", str(CHART), "--destination", directory],
-                           check=True, capture_output=True, text=True)
+            self.run_helm(["package", str(CHART), "--destination", directory],
+                          HELM_PACKAGE_TIMEOUT_SECONDS, check=True)
             package = next(Path(directory).glob("*.tgz"))
             with tarfile.open(package, "r:gz") as archive:
                 metadata = yaml.safe_load(archive.extractfile("hugegraph-helm/Chart.yaml"))
