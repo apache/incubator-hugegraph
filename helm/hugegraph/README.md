@@ -111,7 +111,10 @@ including the Store wait container and Helm test image. PD and Store own the
 ToplingDB databases; Server continues to use `backend=hstore`. Hubble keeps its
 independent image. Linux amd64 scheduling is added to these HugeGraph workloads
 and the test hook. Contradictory OS/architecture node selectors are rejected;
-other scheduling constraints are preserved.
+other scheduling constraints are preserved. The deployment images already include
+the verified community JNI; no artifact URL or checksum is needed in Helm values.
+For source image builds, `RUNTIME_VARIANT=topling` uses the release pinned in
+[`docker/topling-runtime.env`](../../docker/topling-runtime.env).
 
 The current JNI requires a Haswell-compatible x86-64 CPU, including AVX2 and BMI2.
 The architecture selector does not inspect CPU extensions; use a compatible node pool.

@@ -313,13 +313,13 @@ Returning to RocksDB uses its original deployment and volumes. See
 [Topling runtime preparation and validation](../docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb)
 for the native configuration and compatibility requirements.
 
-For a local HStore source build, use the existing development overlay. Supply an
-immutable Topling JNI URL and its trusted SHA-256; both PD and Store reuse them:
+Source builds use the community JNI release and trusted SHA-256 pinned in
+[`topling-runtime.env`](topling-runtime.env). The image build downloads and verifies
+that artifact once; selecting the variant is the only required build input.
+For a local HStore source build, use the existing development overlay:
 
 ```bash
 export RUNTIME_VARIANT=topling
-export TOPLING_JNI_URL='https://your-artifact-host/immutable/rocksdbjni.jar'
-export TOPLING_JNI_SHA256='<trusted-64-character-sha256>'
 docker compose -p hugegraph-topling-dev \
   -f docker-compose-hstore.yml -f docker-compose.dev.yml up -d --build --wait
 ```
@@ -327,7 +327,16 @@ docker compose -p hugegraph-topling-dev \
 The overlay uses the usual local `:dev` tags. Build it on Linux amd64 and keep its
 project volumes separate from a RocksDB source deployment. For direct Docker and
 Bake builds, use `--build-arg RUNTIME_VARIANT=topling` or `RUNTIME_VARIANT=topling`
-respectively, together with the same JNI URL and checksum build inputs.
+respectively; the same pinned JNI defaults apply.
+
+To use a different compatible JNI release, optionally override both
+`TOPLING_JNI_URL` and `TOPLING_JNI_SHA256`. Compose and Bake accept them as environment
+variables; direct Docker builds accept the same names as build arguments:
+
+```bash
+export TOPLING_JNI_URL='https://your-artifact-host/immutable/rocksdbjni.jar'
+export TOPLING_JNI_SHA256='<trusted-64-character-sha256>'
+```
 
 For a verified local JNI JAR, put it in a directory as `rocksdbjni.jar` and supply
 that directory as a named build context instead of a download URL:

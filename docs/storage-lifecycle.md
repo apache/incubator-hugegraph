@@ -501,7 +501,12 @@ Prepared image variants reuse the normal deployment mechanisms. Select
 `hugegraph/hugegraph:latest-topling` for a standalone Server, or the matching
 `hugegraph/pd`, `hugegraph/store` and `hugegraph/server` tags for distributed
 HStore. Published versions use `<version>-topling`. Topling images support Linux
-amd64 and include the verified JNI runtime; startup does not download dependencies.
+amd64 and include the verified community JNI runtime; startup does not download
+dependencies. Source image builds select it with `RUNTIME_VARIANT=topling` and use
+the immutable release URL and trusted SHA-256 in
+[`docker/topling-runtime.env`](../docker/topling-runtime.env). Custom JNI URL/checksum
+build inputs are optional overrides. The unpacked-distribution preparation below
+still requires an explicit JAR and its trusted checksum.
 
 Compose uses its existing `HUGEGRAPH_VERSION=latest-topling` parameter. Helm uses
 `--set global.runtimeVariant=topling` to select matching images and amd64 scheduling.
