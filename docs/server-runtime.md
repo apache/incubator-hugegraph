@@ -920,6 +920,13 @@ configuration write, not a required automatic migration. Until then PD
 `GET /graph-spaces` can report mixed limit units. Storage enforcement reads the
 Server configuration and is unaffected by the stale PD reporting field.
 
+Each Server refreshes its cached graph-space configuration on metadata ADD and
+UPDATE notifications. This includes quota edits, whose REST path can emit ADD for
+an existing space. Notifications carry the space name; the receiver reads current
+metadata so delayed or repeated events do not restore earlier limits. Refresh follows
+asynchronous metadata delivery, not a synchronous consistency guarantee. Upgrade all
+Server replicas to receive these refreshes when requests are routed among them.
+
 After a graph space is deleted, each Server evicts its cached space and service
 entries on the metadata removal event. Peers do not repeat destructive backend
 cleanup or delete shared metadata when handling that notification. A delayed event
