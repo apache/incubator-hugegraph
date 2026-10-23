@@ -113,6 +113,9 @@ independent image. Linux amd64 scheduling is added to these HugeGraph workloads
 and the test hook. Contradictory OS/architecture node selectors are rejected;
 other scheduling constraints are preserved.
 
+The current JNI requires a Haswell-compatible x86-64 CPU, including AVX2 and BMI2.
+The architecture selector does not inspect CPU extensions; use a compatible node pool.
+
 A component tag such as `1.8.0` becomes `1.8.0-topling`; tags already ending in
 `-topling` are kept. Custom repositories and `global.imageRegistry` work as usual.
 An explicit `image.digest` remains exact and takes priority over the derived tag;

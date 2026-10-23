@@ -291,7 +291,8 @@ docker compose -p hugegraph-topling-hstore -f docker-compose-hstore.yml up -d --
 Use the same project name on subsequent `ps`, `stop`, `down` and `up` commands.
 Persist `HUGEGRAPH_VERSION=latest-topling` in that deployment's `.env` if preferred.
 A published version uses `<version>-topling`; the unsuffixed tag keeps RocksDB.
-Topling images support **Linux amd64**. All HugeGraph images in a deployment set
+Topling images support **Linux amd64 on a Haswell-compatible CPU**, including
+AVX2 and BMI2, as required by the current JNI build. All HugeGraph images in a deployment set
 use the same source revision. HStore Server keeps `backend=hstore` and delegates
 storage to PD/Store; it does not load a local Topling JNI runtime. Hubble keeps its
 independent image tag.
