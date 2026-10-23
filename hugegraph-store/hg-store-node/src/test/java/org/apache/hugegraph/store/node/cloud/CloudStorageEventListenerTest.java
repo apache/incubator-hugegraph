@@ -820,7 +820,12 @@ public class CloudStorageEventListenerTest {
 
     private void waitForCondition(BooleanSupplier condition, String timeoutMessage)
             throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 2000L;
+        waitForCondition(condition, 2000L, timeoutMessage);
+    }
+
+    private void waitForCondition(BooleanSupplier condition, long timeoutMs,
+                                  String timeoutMessage) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + timeoutMs;
         while (System.currentTimeMillis() < deadline) {
             if (condition.getAsBoolean()) {
                 return;
@@ -2261,9 +2266,11 @@ public class CloudStorageEventListenerTest {
             // Let a pass fail first: its backoff holds every later pass until all three deletes
             // are queued, so they share one publish. Flipping earlier lets a pass that saw only
             // the first delete publish on its own.
-            waitForCondition(() -> failedPublishes.get() > 0, "the first publish must fail");
+            // The healthy publish waits out the >= 1 s publish backoff, so allow slow CI headroom.
+            waitForCondition(() -> failedPublishes.get() > 0, 10_000L,
+                             "the first publish must fail");
             metadataHealthy.set(true);
-            waitForCondition(() -> provider.deletes.size() == 3,
+            waitForCondition(() -> provider.deletes.size() == 3, 10_000L,
                              "all superseded SSTs must be deleted once metadata publishes");
 
             assertFalse(publishedOnCaller.get(), "no cloud I/O on the RocksDB callback thread");
