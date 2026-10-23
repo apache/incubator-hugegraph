@@ -959,6 +959,10 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             log.info("Cloud DB deleted at {} while db={} is live elsewhere; keeping its state",
                      deletedDir, dbName);
         } else {
+            // Drop the dirty mark before the truncation guards below: a concurrent drain that
+            // sees the guards cleared must then fail its dirtyMetadataDbs.remove() and skip.
+            dirtyMetadataDbs.remove(dbName);
+            publishBackoffs.remove(dbName);
             // Clear in-memory tracking so no stale state bleeds into a recreated DB.
             syncTracker.clearDb(dbName);
             readMissAttemptTs.entrySet().removeIf(e -> e.getKey().startsWith(dbName + "::"));
@@ -968,8 +972,6 @@ public class CloudStorageEventListener implements RocksdbChangedListener, AutoCl
             truncationTimes.remove(dbName);
             truncatingDbs.remove(dbName);
             deferredSstDeletes.removeIf(t -> dbName.equals(t.dbName));
-            dirtyMetadataDbs.remove(dbName);
-            publishBackoffs.remove(dbName);
             // Remove per-DB meters so meter cardinality does not grow without bound as DBs churn.
             CloudStorageMetrics.unregisterDatabaseMetrics(dbName);
         }
