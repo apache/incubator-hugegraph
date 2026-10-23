@@ -17,9 +17,9 @@
 
 apiVersion: v2
 name: hugegraph-helm
-description: Helm chart for Apache HugeGraph HStore cluster (PD + Store + Server)
+description: Helm chart for Apache HugeGraph HStore cluster with optional SeaTunnel
 type: application
-version: 0.2.0
+version: 0.3.0
 # TODO: set appVersion to "1.8.0" when the release images are published.
 appVersion: "latest"
 kubeVersion: ">=1.23.0-0"
@@ -32,6 +32,13 @@ home: https://hugegraph.apache.org/
 icon: https://hugegraph.apache.org/img/logo.svg
 sources:
   - https://github.com/apache/hugegraph
+  - https://github.com/hugegraph/seatunnel/tree/dev/deploy/kubernetes/seatunnel
+dependencies:
+  - name: seatunnel-helm
+    alias: seatunnel
+    version: 3.0.1-hugegraph.1
+    repository: file://../../../seatunnel/deploy/kubernetes/seatunnel
+    condition: seatunnel.enabled
 maintainers:
   - name: HugeGraph Community
     url: https://hugegraph.apache.org/

@@ -533,6 +533,13 @@ hubble:
       failureThreshold: 3
       timeoutSeconds: 5
 
+# Optional SeaTunnel engine. Its topology is independent of HugeGraph's presets
+# and easy/strict mode. See docs/seatunnel.md for the SeaTunnel chart's native
+# configuration, connector images and credentials.
+seatunnel:
+  enabled: false
+  mode: standalone
+
 # Kubernetes NetworkPolicy: mode default plus explicit per-component rules.
 # easy does not isolate clients; strict isolates release traffic and DNS. Only
 # enforced when the network plugin implements NetworkPolicy (kind v0.25+,
@@ -555,6 +562,12 @@ networkPolicy:
     extraIngress: []
     # For Hubble's optional outside endpoints (es.urls, prometheus.url set
     # through extraEnv). PD, Store and Server reach only the release and DNS.
+    extraEgress: []
+  seatunnel:
+    # SeaTunnel peers, DNS and the HugeGraph Server API are allowed by default.
+    # Add submitters/monitoring here using native NetworkPolicy rules.
+    extraIngress: []
+    # External source/sink systems and shared checkpoint storage need egress.
     extraEgress: []
 
 # No init Job; see README.md for the HStore initialization contract.

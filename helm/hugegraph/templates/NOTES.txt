@@ -24,6 +24,9 @@ limitations under the License.
 {{- if $hubbleEnabled }}
   Hubble  1 replica (UI)
 {{- end }}
+{{- if (.Values.seatunnel | default dict).enabled }}
+  SeaTunnel  {{ .Values.seatunnel.mode }} mode
+{{- end }}
 {{- $inheritedEntries := list }}
 {{- range $component := list "server" "hubble" }}
 {{- $cfg := get $.Values $component }}
@@ -56,6 +59,13 @@ Store waits for a PD quorum before startup. If a Pod remains in Init, inspect
 its init-container logs and PD readiness; see helm/hugegraph/docs/operations.md#troubleshooting.
 
 Access:
+{{- if (.Values.seatunnel | default dict).enabled }}
+
+  SeaTunnel:
+    In-cluster API: http://{{ include "seatunnel.fullname" .Subcharts.seatunnel }}-master.{{ .Release.Namespace }}.svc:{{ .Values.seatunnel.service.port }}
+    Port-forward: kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "seatunnel.fullname" .Subcharts.seatunnel }}-master 8081:{{ .Values.seatunnel.service.port }}
+    Connector images, credentials and checkpoint storage: helm/hugegraph/docs/seatunnel.md
+{{- end }}
 {{- range $component := list "server" "hubble" "pd" }}
 {{- if or (ne $component "hubble") $hubbleEnabled }}
 {{- $cfg := get $.Values $component }}

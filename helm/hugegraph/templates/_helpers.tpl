@@ -1028,6 +1028,19 @@ resolver (CoreDNS in any namespace, NodeLocal DNSCache).
 {{- join "\n" $rules -}}
 {{- end }}
 
+{{/* SeaTunnel is a separate subchart with its own stable application labels. */}}
+{{- define "hugegraph.netpol.seatunnelLabels" -}}
+app.kubernetes.io/name: seatunnel
+app.kubernetes.io/instance: {{ .Release.Name | quote }}
+app.kubernetes.io/part-of: seatunnel
+{{- end }}
+
+{{- define "hugegraph.netpol.seatunnelPeer" -}}
+- podSelector:
+    matchLabels:
+      {{- include "hugegraph.netpol.seatunnelLabels" . | nindent 6 }}
+{{- end }}
+
 {{- define "hugegraph.netpol.dns" -}}
 - ports:
     - protocol: UDP

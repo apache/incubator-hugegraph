@@ -38,10 +38,16 @@ runs:
       helm lint helm/hugegraph -f helm/hugegraph/values-single.yaml
       helm lint helm/hugegraph -f helm/hugegraph/values-cluster.yaml
       helm lint helm/hugegraph -f helm/hugegraph/values-strict.yaml
+      helm lint helm/hugegraph -f helm/hugegraph/examples/values-seatunnel-standalone.yaml
+      helm lint helm/hugegraph -f helm/hugegraph/examples/values-seatunnel-cluster.yaml
 
   - name: packaged chart regression
     shell: 'bash -e {0}'
     run: python3 -m unittest discover -s helm -p 'test_helm_package.py' -v
+
+  - name: SeaTunnel integration regression
+    shell: 'bash -e {0}'
+    run: python3 -m unittest discover -s helm -p 'test_helm_seatunnel.py' -v
 
   - name: helm unittest
     shell: 'bash -e {0}'
@@ -56,7 +62,8 @@ runs:
   - name: helm template
     shell: 'bash -e {0}'
     run: |
-      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml"; do
+      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml" \
+        "-f helm/hugegraph/examples/values-seatunnel-standalone.yaml" "-f helm/hugegraph/examples/values-seatunnel-cluster.yaml"; do
         # shellcheck disable=SC2086 # $preset intentionally splits into flags
         helm template ci helm/hugegraph $preset > /dev/null
       done
@@ -493,7 +500,8 @@ runs:
       curl -sSLo /tmp/kc.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz
       echo "95f14e87aa28c09d5941f11bd024c1d02fdc0303ccaa23f61cef67bc92619d73  /tmp/kc.tar.gz" | sha256sum -c -
       tar -xzf /tmp/kc.tar.gz -C /tmp
-      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml"; do
+      for preset in "" "-f helm/hugegraph/values-single.yaml" "-f helm/hugegraph/values-cluster.yaml" "-f helm/hugegraph/values-strict.yaml" \
+        "-f helm/hugegraph/examples/values-seatunnel-standalone.yaml" "-f helm/hugegraph/examples/values-seatunnel-cluster.yaml"; do
         # shellcheck disable=SC2086 # $preset intentionally splits into flags
         helm template ci helm/hugegraph $preset | /tmp/kubeconform -strict -summary -kubernetes-version 1.23.0
       done

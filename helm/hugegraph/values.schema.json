@@ -58,6 +58,15 @@
           "type": "boolean"
         }
       }
+    },
+    "seatunnel": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "description": "Optional upstream-derived SeaTunnel subchart; see charts/seatunnel/values.yaml."
     }
   },
   "definitions": {
@@ -118,6 +127,18 @@
           "$ref": "#/definitions/networkPolicyComponent"
         },
         "hubble": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "extraIngress": {
+              "$ref": "#/definitions/networkPolicyIngressRules"
+            },
+            "extraEgress": {
+              "$ref": "#/definitions/networkPolicyEgressRules"
+            }
+          }
+        },
+        "seatunnel": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
