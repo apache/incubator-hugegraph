@@ -43,9 +43,13 @@ public final class GraphIdCheckCommand {
 
     static int run(String... args) {
         try {
-            if (args.length == 0 || args.length == 1 && "--help".equals(args[0])) {
+            if (args.length == 1 && "--help".equals(args[0])) {
                 help();
                 return 0;
+            }
+            if (args.length == 0) {
+                throw new IllegalArgumentException(
+                        "Use --check to inspect a stopped Store, or --help");
             }
             Map<String, String> arguments = new HashMap<>();
             for (int i = 0; i < args.length; i++) {
