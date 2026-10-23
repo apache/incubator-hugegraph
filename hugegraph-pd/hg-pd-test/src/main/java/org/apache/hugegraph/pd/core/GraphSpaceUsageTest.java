@@ -130,8 +130,13 @@ public class GraphSpaceUsageTest {
     @Test
     public void testQuotaUsesConfiguredServerNamespace() throws Exception {
         StoreNodeService service = Mockito.mock(StoreNodeService.class, Mockito.CALLS_REAL_METHODS);
-        PartitionService partitions = Mockito.mock(PartitionService.class);
-        ConfigService config = Mockito.mock(ConfigService.class);
+        PartitionService partitions = Mockito.mock(PartitionService.class, Mockito.CALLS_REAL_METHODS);
+        ConfigService config = Mockito.mock(ConfigService.class, Mockito.CALLS_REAL_METHODS);
+        ConfigMetaStore meta = Mockito.mock(ConfigMetaStore.class);
+        setField(config, "meta", meta);
+        Mockito.when(meta.getGraphSpaceExact("shop")).thenReturn(
+                Metapb.GraphSpace.newBuilder().setName("shop").setStorageLimit(100).build());
+        Mockito.when(meta.setGraphSpace(Mockito.any())).thenAnswer(call -> call.getArgument(0));
         KvService kv = Mockito.mock(KvService.class);
         PDConfig pdConfig = new PDConfig();
         pdConfig.setServerCluster("custom-cluster");
@@ -141,7 +146,9 @@ public class GraphSpaceUsageTest {
         setField(service, "kvService", kv);
         setField(service, "statusListeners", Collections.emptyList());
         Metapb.Graph graph = Metapb.Graph.newBuilder().setGraphName("shop/g/g").build();
-        Mockito.when(partitions.getGraphs()).thenReturn(List.of(graph));
+        Mockito.doReturn(List.of(graph)).when(partitions).getGraphs();
+        Mockito.doReturn(graph).when(partitions).getGraph("shop/g/g");
+        Mockito.doReturn(graph).when(partitions).updateGraph(Mockito.any());
         Metapb.Store store = Metapb.Store.newBuilder().setStats(Metapb.StoreStats.newBuilder()
                 .addGraphStats(Metapb.GraphStats.newBuilder().setGraphName("shop/g/g")
                         .setRole(Metapb.ShardRole.Leader).setApproximateSize(2L * 1024 * 1024))).build();
