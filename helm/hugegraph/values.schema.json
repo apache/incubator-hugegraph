@@ -61,12 +61,23 @@
     },
     "seatunnel": {
       "type": "object",
+      "description": "Optional native SeaTunnel hybrid Kubernetes deployment.",
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "standalone",
+            "cluster"
+          ]
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1
         }
-      },
-      "description": "Optional upstream-derived SeaTunnel subchart; see charts/seatunnel/values.yaml."
+      }
     }
   },
   "definitions": {

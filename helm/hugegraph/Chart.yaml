@@ -32,13 +32,7 @@ home: https://hugegraph.apache.org/
 icon: https://hugegraph.apache.org/img/logo.svg
 sources:
   - https://github.com/apache/hugegraph
-  - https://github.com/hugegraph/seatunnel/tree/dev/deploy/kubernetes/seatunnel
-dependencies:
-  - name: seatunnel-helm
-    alias: seatunnel
-    version: 3.0.1-hugegraph.1
-    repository: file://../../../seatunnel/deploy/kubernetes/seatunnel
-    condition: seatunnel.enabled
+  - https://github.com/apache/seatunnel
 maintainers:
   - name: HugeGraph Community
     url: https://hugegraph.apache.org/

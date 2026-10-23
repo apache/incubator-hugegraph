@@ -1,6 +1,0 @@
-dependencies:
-- name: seatunnel-helm
-  repository: file://../../../seatunnel/deploy/kubernetes/seatunnel
-  version: 3.0.1-hugegraph.1
-digest: sha256:0940d9b2f7fb25cb2b43e6464f838072bc38bf371821735b1782ea15feaf257e
-generated: "2026-10-23T13:15:14.300959334Z"

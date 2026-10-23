@@ -13,21 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 启动一个持续接收作业的 SeaTunnel 混合节点，HugeGraph 拓扑独立选择。
-# 小型环境可同时使用 ../values-single.yaml。
-# 此预设只启动引擎；提交作业前确认镜像含 HugeGraph 连接器，见 ../docs/seatunnel.md。
+# 复用官方原生 hybrid StatefulSet；HTTP8080 同时提供 REST 和任务可视化前端。
+# HugeGraph 拓扑独立选择，1 PD + 1 Store + 1 Server 可用 ../values-single.yaml。
 seatunnel:
   enabled: true
   mode: standalone
-  master:
-    resources:
-      requests:
-        cpu: 500m
-        memory: 1536Mi
-      limits:
-        memory: 2Gi
-  configMap:
-    data:
-      jvm_options: |
-        -Xms512m
-        -Xmx1g

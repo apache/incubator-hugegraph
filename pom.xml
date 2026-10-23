@@ -282,7 +282,6 @@
                             <exclude>**/pd/grpc/**/*.java</exclude>
                             <exclude>**/store/grpc/**/*.java</exclude>
                             <exclude>**/target/**</exclude>
-                            <exclude>helm/**/Chart.lock</exclude>
                             <exclude>**/apache-hugegraph-*/lib/arthas/logback.xml</exclude>
                             <exclude>dist/**/*</exclude>
                             <!-- Git & GitHub  -->
@@ -440,8 +439,6 @@
                         <!-- see https://github.com/ec4j/editorconfig-linters/blob/master/editorconfig-lint-api/src/main/java/org/ec4j/lint/api/Constants.java#L37 -->
                         <!-- You can exclude further files from processing: -->
                         <exclude>**/*.txt</exclude>
-                        <exclude>**/*.tgz</exclude>
-                        <exclude>**/__pycache__/**</exclude>
                         <exclude>**/.flattened-pom.xml</exclude>
                         <exclude>**/apache-hugegraph-*/**/*</exclude>
                     </excludes>

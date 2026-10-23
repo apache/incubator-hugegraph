@@ -533,12 +533,29 @@ hubble:
       failureThreshold: 3
       timeoutSeconds: 5
 
-# Optional SeaTunnel engine. Its topology is independent of HugeGraph's presets
-# and easy/strict mode. See docs/seatunnel.md for the SeaTunnel chart's native
-# configuration, connector images and credentials.
+# Optional engine using Apache SeaTunnel's native hybrid Kubernetes deployment.
+# One hybrid StatefulSet serves both modes; HTTP includes the built-in Web UI.
 seatunnel:
   enabled: false
   mode: standalone
+  # Used in cluster mode; standalone always starts one hybrid node.
+  replicas: 2
+  image:
+    repository: apache/seatunnel
+    tag: "3.0.0"
+    pullPolicy: IfNotPresent
+  javaOpts: "-Xms512m -Xmx1g"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1536Mi
+    limits:
+      memory: 2Gi
+  # Native Kubernetes env entries, including Secret keyRef credentials.
+  env: []
+  # Full native configuration files, keyed by filename (e.g. seatunnel.yaml).
+  # Keep member port 5801 and HTTP 8080 when overriding discovery/engine files.
+  config: {}
 
 # Kubernetes NetworkPolicy: mode default plus explicit per-component rules.
 # easy does not isolate clients; strict isolates release traffic and DNS. Only

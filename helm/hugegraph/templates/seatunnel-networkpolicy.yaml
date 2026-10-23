@@ -34,7 +34,7 @@ spec:
     - from:
         {{- include "hugegraph.netpol.seatunnelPeer" . | nindent 8 }}
       ports:
-        {{- include "hugegraph.netpol.ports" (list 5801 (.Values.seatunnel.service.port | default 8080)) | nindent 8 }}
+        {{- include "hugegraph.netpol.ports" (list 5801 8080) | nindent 8 }}
     {{- with get $rules "extraIngress" }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -42,7 +42,7 @@ spec:
     - to:
         {{- include "hugegraph.netpol.seatunnelPeer" . | nindent 8 }}
       ports:
-        {{- include "hugegraph.netpol.ports" (list 5801 (.Values.seatunnel.service.port | default 8080)) | nindent 8 }}
+        {{- include "hugegraph.netpol.ports" (list 5801 8080) | nindent 8 }}
     - to:
         {{- include "hugegraph.netpol.peer" (dict "root" . "component" "server") | nindent 8 }}
       ports:

@@ -34,5 +34,5 @@ testdata/
 # files in the release Secret; binary assets can exceed Kubernetes' 1 MiB limit.
 /images/
 
-# Ignore parent archives; dependencies under charts/ must be loaded by Helm.
-/*.tgz
+# Never package a chart archive inside a chart.
+*.tgz

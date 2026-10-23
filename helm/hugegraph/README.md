@@ -84,9 +84,9 @@ Inactive credential values may remain in the values file when auth is disabled.
 ### 可选 SeaTunnel
 
 增加 `--set seatunnel.enabled=true`，与 HugeGraph 一起启动一个 SeaTunnel 混合节点；
-增加 `--set seatunnel.mode=cluster`，切换为分离的 master/worker 集群。
+增加 `--set seatunnel.mode=cluster`，切换为多个 hybrid 节点（默认两个），复用同一套官方原生 Kubernetes 资源。
 默认关闭，SeaTunnel 拓扑独立于 HugeGraph 的单机/集群预设和 `easy/strict` 访问模式。
-启动、凭据、直接导入 Graph 及 Graph A → Graph B 复制示例见
+引擎同时提供内置任务可视化前端。启动、凭据、直接导入 Graph 及 Graph A → Graph B 复制示例见
 [SeaTunnel 联合部署指南](docs/seatunnel.md)。
 
 ### Internal image registry

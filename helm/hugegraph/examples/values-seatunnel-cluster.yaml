@@ -13,33 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# 使用官方的 master/worker 分离 Deployment，示例仅指定引擎规模。
-# 生产环境需另行配置持久化与故障恢复，见 ../docs/seatunnel.md。
-# 提交作业前确认镜像含 HugeGraph 连接器。
+# 复用官方原生 hybrid StatefulSet；HTTP8080 同时提供 REST 和任务可视化前端。
+# HugeGraph 拓扑独立选择，1 PD + 1 Store + 1 Server 可用 ../values-single.yaml。
 seatunnel:
   enabled: true
   mode: cluster
-  master:
-    replicas: 2
-    resources:
-      requests:
-        cpu: 500m
-        memory: 1536Mi
-      limits:
-        memory: 2Gi
-  worker:
-    replicas: 2
-    resources:
-      requests:
-        cpu: 500m
-        memory: 1536Mi
-      limits:
-        memory: 2Gi
-  configMap:
-    data:
-      jvm_master_options: |
-        -Xms512m
-        -Xmx1g
-      jvm_worker_options: |
-        -Xms512m
-        -Xmx1g
+  replicas: 2

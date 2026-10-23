@@ -62,8 +62,9 @@ Access:
 {{- if (.Values.seatunnel | default dict).enabled }}
 
   SeaTunnel:
-    In-cluster API: http://{{ include "seatunnel.fullname" .Subcharts.seatunnel }}-master.{{ .Release.Namespace }}.svc:{{ .Values.seatunnel.service.port }}
-    Port-forward: kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "seatunnel.fullname" .Subcharts.seatunnel }}-master 8081:{{ .Values.seatunnel.service.port }}
+    In-cluster API: http://{{ include "hugegraph.seatunnel.name" . }}.{{ .Release.Namespace }}.svc:8080
+    Port-forward: kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "hugegraph.seatunnel.name" . }} 8081:8080
+    Web UI: http://localhost:8081/#/overview
     Connector images, credentials and checkpoint storage: helm/hugegraph/docs/seatunnel.md
 {{- end }}
 {{- range $component := list "server" "hubble" "pd" }}
