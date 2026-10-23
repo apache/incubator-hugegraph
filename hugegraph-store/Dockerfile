@@ -17,6 +17,9 @@
 #
 
 # Dockerfile for HugeGraph Store
+# Select the native runtime without changing the source build or deployment layout.
+ARG RUNTIME_VARIANT=standard
+
 # 1st stage: build source code
 FROM --platform=$BUILDPLATFORM maven:3.9.16-eclipse-temurin-17 AS build
 
@@ -29,13 +32,40 @@ ARG MAVEN_PROJECTS="hugegraph-server/hugegraph-dist,hugegraph-pd/hg-pd-dist,huge
 ARG SOURCE_REVISION=local
 
 RUN --mount=type=cache,id=hugegraph-maven-${SOURCE_REVISION},target=/root/.m2,sharing=locked \
+    --mount=type=secret,id=proxy_ca,required=false \
+    --mount=type=secret,id=maven_settings,required=false \
+    set -e; \
+    if [ -f /run/secrets/proxy_ca ]; then \
+        cp "$JAVA_HOME/lib/security/cacerts" /tmp/hugegraph-build-cacerts; \
+        keytool -importcert -noprompt -alias hugegraph-build-proxy \
+            -file /run/secrets/proxy_ca -keystore /tmp/hugegraph-build-cacerts -storepass changeit; \
+        export MAVEN_OPTS="${MAVEN_OPTS:-} -Djavax.net.ssl.trustStore=/tmp/hugegraph-build-cacerts"; \
+    fi; \
+    if [ -f /run/secrets/maven_settings ]; then \
+        MAVEN_ARGS="-s /run/secrets/maven_settings ${MAVEN_ARGS:-}"; \
+    fi; \
     mvn install -pl "$MAVEN_PROJECTS" \
-        -am $MAVEN_ARGS -e -B -ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true \
-    && rm ./hugegraph-server/*.tar.gz ./hugegraph-pd/*.tar.gz ./hugegraph-store/*.tar.gz
+        -am $MAVEN_ARGS -e -B -ntp -Dmaven.test.skip=true -Dmaven.javadoc.skip=true; \
+    rm -f /tmp/hugegraph-build-cacerts; \
+    rm ./hugegraph-server/*.tar.gz ./hugegraph-pd/*.tar.gz ./hugegraph-store/*.tar.gz
 
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13
-FROM eclipse-temurin:17-jdk-jammy
+FROM eclipse-temurin:17-jdk-jammy AS standard-base
+
+# The fork's JNI requires glibc 2.38+ and a Java 17 JDK for its capability probe.
+FROM eclipse-temurin:17-jdk-noble AS topling-base
+ARG TARGETARCH
+RUN test "$TARGETARCH" = amd64 || { echo 'Topling images require linux/amd64' >&2; exit 1; }
+ENV TOPLINGDB_ROCKSDB_PROVIDER=topling
+
+FROM ${RUNTIME_VARIANT}-base AS runtime
+ARG RUNTIME_VARIANT
+ARG SOURCE_REVISION=local
+ARG SOURCE_REPOSITORY=https://github.com/apache/hugegraph
+LABEL org.opencontainers.image.source="$SOURCE_REPOSITORY" \
+      org.opencontainers.image.revision="$SOURCE_REVISION" \
+      org.apache.hugegraph.rocksdb-runtime="$RUNTIME_VARIANT"
 # Local Arthas attach requires the JDK attach and compiler modules.
 
 LABEL maintainer="HugeGraph Docker Maintainers <dev@hugegraph.apache.org>"
@@ -52,12 +82,19 @@ WORKDIR /hugegraph-store/
 # from hg-store-dist bin/util.sh.  Store runs no port preflight, so unlike the
 # server images this needs no socket-table tool in its place.
 ARG RUNTIME_DEPS_EPOCH=1
-RUN apt-get -q update \
-    && apt-get -q install -y --no-install-recommends --no-install-suggests \
+RUN --mount=type=secret,id=proxy_ca,required=false \
+    native_deps="" \
+    && if [ "$RUNTIME_VARIANT" = topling ]; then \
+        native_deps="libaio1t64 libstdc++6 libsnappy1v5 libbz2-1.0 liblz4-1 libzstd1 zlib1g unzip"; \
+    fi \
+    && apt_ca=/etc/ssl/certs/ca-certificates.crt \
+    && if [ -f /run/secrets/proxy_ca ]; then apt_ca=/run/secrets/proxy_ca; fi \
+    && apt-get -q -o Acquire::https::CaInfo="$apt_ca" update \
+    && apt-get -q -o Acquire::https::CaInfo="$apt_ca" install -y --no-install-recommends --no-install-suggests \
        dumb-init \
        procps \
        curl \
-       vim \
+       vim ${native_deps} \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -66,6 +103,19 @@ COPY --from=build /pkg/hugegraph-store/apache-hugegraph-store-*/ /hugegraph-stor
 # 2. Init docker script
 COPY hugegraph-store/hg-store-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh
+
+# Download only during an explicit Topling build, verify and prepare with the
+# distribution's normal capability probe. No network access is needed at startup.
+ARG TOPLING_JNI_URL
+ARG TOPLING_JNI_SHA256
+COPY docker/prepare-topling-image.sh docker/topling-runtime.env /tmp/
+RUN --mount=type=secret,id=proxy_ca,required=false \
+    --mount=type=secret,id=topling_jni,required=false \
+    if [ "$RUNTIME_VARIANT" = topling ]; then \
+        if [ -f /run/secrets/proxy_ca ]; then export CURL_CA_BUNDLE=/run/secrets/proxy_ca; fi; \
+        bash /tmp/prepare-topling-image.sh; \
+    fi \
+    && rm /tmp/prepare-topling-image.sh /tmp/topling-runtime.env
 
 EXPOSE 8520
 VOLUME /hugegraph-store

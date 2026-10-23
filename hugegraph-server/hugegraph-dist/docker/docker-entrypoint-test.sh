@@ -561,5 +561,33 @@ for invalid_k8s_flag in 1 0 enabled "t rue" "tr ue"; do
         "${TEST_HOME}/conf/graphs/hugegraph.properties"
 done
 
+# A Topling image configures every local graph while retaining remote graphs.
+printf 'backend=rocksdb\n' > "${TEST_HOME}/conf/graphs/analytics.properties"
+printf 'backend=hstore\nrocksdb.provider=rocksdb\n' > "${TEST_HOME}/conf/graphs/remote.properties"
+(
+    cd "${TEST_HOME}"
+    HG_SERVER_BACKEND=rocksdb TOPLINGDB_ROCKSDB_PROVIDER=topling bash ./docker-entrypoint.sh
+)
+for graph in hugegraph analytics; do
+    grep -qx 'rocksdb.provider=topling' "${TEST_HOME}/conf/graphs/${graph}.properties"
+done
+grep -qx 'rocksdb.provider=rocksdb' "${TEST_HOME}/conf/graphs/remote.properties"
+# Default RocksDB startup retains mounted settings so business/launcher mismatch
+# checks can still reject an incorrectly selected runtime instead of hiding it.
+(
+    cd "${TEST_HOME}"
+    env -u TOPLINGDB_ROCKSDB_PROVIDER bash ./docker-entrypoint.sh
+)
+grep -qx 'rocksdb.provider=topling' "${TEST_HOME}/conf/graphs/analytics.properties"
+cp "${TEST_HOME}/conf/graphs/analytics.properties" "${TEST_HOME}/analytics.before-invalid-provider"
+if (
+    cd "${TEST_HOME}"
+    TOPLINGDB_ROCKSDB_PROVIDER=invalid bash ./docker-entrypoint.sh
+); then
+    echo "invalid TOPLINGDB_ROCKSDB_PROVIDER unexpectedly succeeded" >&2
+    exit 1
+fi
+cmp "${TEST_HOME}/analytics.before-invalid-provider" "${TEST_HOME}/conf/graphs/analytics.properties"
+
 echo "PASS: Docker entrypoint configures HStore discovery and authentication"
 bash "${SCRIPT_DIR}/test/test-docker-entrypoint-process.sh"

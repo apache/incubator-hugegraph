@@ -272,6 +272,69 @@ The Hubble `latest` image is expected to work with HugeGraph Server 1.7 and Serv
 
 </details>
 
+### ToplingDB images
+
+Select the ToplingDB variant with the existing image-version parameter. The same
+Compose files, credentials, ports and lifecycle commands apply:
+
+```bash
+export HUGEGRAPH_VERSION=latest-topling
+# Standalone Server with embedded ToplingDB
+# A distinct project creates fresh volumes for this runtime.
+docker compose -p hugegraph-topling-standalone -f docker-compose.yml up -d --wait
+
+# Or PD + Store using ToplingDB, with an HStore Server
+# Generate conf/hubble/hstore.local.properties as described above first.
+docker compose -p hugegraph-topling-hstore -f docker-compose-hstore.yml up -d --wait
+```
+
+Use the same project name on subsequent `ps`, `stop`, `down` and `up` commands.
+Persist `HUGEGRAPH_VERSION=latest-topling` in that deployment's `.env` if preferred.
+A published version uses `<version>-topling`; the unsuffixed tag keeps RocksDB.
+Topling images support **Linux amd64**. All HugeGraph images in a deployment set
+use the same source revision. HStore Server keeps `backend=hstore` and delegates
+storage to PD/Store; it does not load a local Topling JNI runtime. Hubble keeps its
+independent image tag.
+
+The images include the verified JNI runtime and set both launcher and business
+provider configuration. No JAR download or `LD_PRELOAD` setting is needed at startup.
+Existing data is not converted by selecting another image: use new volumes for
+ToplingDB, and migrate through the graph APIs after validating your workload.
+Returning to RocksDB uses its original deployment and volumes. See
+[Topling runtime preparation and validation](../docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb)
+for the native configuration and compatibility requirements.
+
+For a local HStore source build, use the existing development overlay. Supply an
+immutable Topling JNI URL and its trusted SHA-256; both PD and Store reuse them:
+
+```bash
+export RUNTIME_VARIANT=topling
+export TOPLING_JNI_URL='https://your-artifact-host/immutable/rocksdbjni.jar'
+export TOPLING_JNI_SHA256='<trusted-64-character-sha256>'
+docker compose -p hugegraph-topling-dev \
+  -f docker-compose-hstore.yml -f docker-compose.dev.yml up -d --build --wait
+```
+
+The overlay uses the usual local `:dev` tags. Build it on Linux amd64 and keep its
+project volumes separate from a RocksDB source deployment. For direct Docker and
+Bake builds, use `--build-arg RUNTIME_VARIANT=topling` or `RUNTIME_VARIANT=topling`
+respectively, together with the same JNI URL and checksum build inputs.
+
+For a verified local JNI JAR, supply a BuildKit secret instead of a download URL:
+
+```bash
+docker buildx build --platform linux/amd64 -f ../hugegraph-server/Dockerfile \
+  --build-arg RUNTIME_VARIANT=topling \
+  --build-arg TOPLING_JNI_SHA256='<trusted-64-character-sha256>' \
+  --secret id=topling_jni,src=/absolute/path/rocksdbjni.jar \
+  -t hugegraph/hugegraph:local-topling --load ..
+```
+
+Run this example from the `docker` directory. The checksum and normal native
+capability probe still apply. Networks with a private CA can additionally supply
+`--secret id=proxy_ca,src=/absolute/path/ca.pem`; the CA is mounted only while
+Maven, package installation and artifact download run.
+
 ### Data persistence
 
 Each topology creates its own normal Compose network and named volumes. No network or volume needs to be created in advance.

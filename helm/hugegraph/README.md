@@ -97,6 +97,36 @@ Store's wait init container and Helm test reuse the Store and Server images,
 which already contain `curl`; no separate curl image is needed by default.
 See the [complete registry example](examples/values-internal-registry.yaml).
 
+### ToplingDB runtime
+
+Select ToplingDB for a **fresh deployment** with one value:
+
+```bash
+helm install hugegraph-topling ./helm/hugegraph -n hugegraph-topling \
+  --create-namespace --set global.runtimeVariant=topling --wait --timeout 15m
+```
+
+This selects the matching `-topling` image tags for PD, Store and HStore Server,
+including the Store wait container and Helm test image. PD and Store own the
+ToplingDB databases; Server continues to use `backend=hstore`. Hubble keeps its
+independent image. Linux amd64 scheduling is added to these HugeGraph workloads
+and the test hook. Contradictory OS/architecture node selectors are rejected;
+other scheduling constraints are preserved.
+
+A component tag such as `1.8.0` becomes `1.8.0-topling`; tags already ending in
+`-topling` are kept. Custom repositories and `global.imageRegistry` work as usual.
+An explicit `image.digest` remains exact and takes priority over the derived tag;
+supply the digest of the matching Topling deployment image. Explicit helper image
+overrides also remain exact.
+
+The default `global.runtimeVariant=standard` keeps RocksDB. Selecting another
+runtime does not convert existing data. Use separate empty volumes and migrate
+through graph APIs after validating the application. The chart rejects runtime
+changes on an existing persistent PD or Store release, including a return from
+ToplingDB to RocksDB. Keep the original release and volumes to return to RocksDB.
+See the [storage runtime guide](../../docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb)
+for native configuration and validation.
+
 ### Storage
 
 Use a named dynamic StorageClass when the cluster has no suitable default:
@@ -166,7 +196,7 @@ Use `--set mode=strict` or `-f helm/hugegraph/values-strict.yaml`.
 
 **Explicit component value > global value > mode default.** An explicit `false`
 is preserved; null component values inherit. The global settings are
-`persistence.enabled` and `global.imageRegistry`. No mode requires HTTPS.
+`persistence.enabled`, `global.imageRegistry` and `global.runtimeVariant`. No mode requires HTTPS.
 
 | Entry | Access | When to use it |
 |---|---|---|
@@ -204,6 +234,7 @@ with `-f`; see [values.yaml](values.yaml) for all fields and their comments.
 | `pd.service.type` | PD client entry type | `ClusterIP` |
 | `*.service.nodePort` | Fixed Server/Hubble port; omitted/0 allocates automatically | unset |
 | `global.imageRegistry` | Prefix image repositories without an explicit registry | `""` |
+| `global.runtimeVariant` | `standard` RocksDB or Linux amd64 `topling` deployment images | `standard` |
 | `*.image.repository` / `tag` / `digest` | Component image; digest takes priority | see values |
 | `persistence.enabled` | Global persistent storage | `true` |
 | `pd.storage.enabled` / `store.storage.enabled` / `hubble.persistence.enabled` | Explicit component storage override | `null` (inherits) |

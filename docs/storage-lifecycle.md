@@ -495,6 +495,27 @@ For a distributed graph, Server uses `backend=hstore`; PD and Store own its pers
 storage. A standalone Server keeps `backend=rocksdb`. The launcher selection and the
 business provider must agree. A mismatch fails before opening that component's database.
 
+### Docker, Compose and Helm
+
+Prepared image variants reuse the normal deployment mechanisms. Select
+`hugegraph/hugegraph:latest-topling` for a standalone Server, or the matching
+`hugegraph/pd`, `hugegraph/store` and `hugegraph/server` tags for distributed
+HStore. Published versions use `<version>-topling`. Topling images support Linux
+amd64 and include the verified JNI runtime; startup does not download dependencies.
+
+Compose uses its existing `HUGEGRAPH_VERSION=latest-topling` parameter. Helm uses
+`--set global.runtimeVariant=topling` to select matching images and amd64 scheduling.
+The HStore Server keeps `backend=hstore` and uses the Topling-enabled PD and Store;
+it does not load a local Topling runtime. The images configure the business
+provider and launcher together. See the [Compose guide](../docker/README.md#toplingdb-images)
+and [Helm guide](../helm/hugegraph/README.md#toplingdb-runtime) for complete commands,
+source builds, custom registries and immutable image digests.
+
+Select a new Compose project or Helm release with fresh volumes for validation.
+Changing the image does not migrate an existing RocksDB database. Keep the original
+deployment's data and use graph APIs for a verified migration; the Helm chart
+rejects runtime changes on an initialized persistent release.
+
 ### Standalone Server setup
 
 ![Switch RocksDB to ToplingDB](images/switch-rocksdb-to-toplingdb.png)

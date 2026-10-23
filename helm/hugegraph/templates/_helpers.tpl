@@ -45,6 +45,27 @@
 {{- $_ := set $component $key $storage -}}
 {{- if or (not (hasKey $storage "enabled")) (eq (get $storage "enabled" | toString) "<nil>") -}}{{- $_ := set $storage "enabled" $persistent -}}{{- end -}}
 {{- end -}}
+{{/* The runtime is an image variant. Keep business/JNI configuration in the image. */}}
+{{- $variant := get (.Values.global | default dict) "runtimeVariant" | default "standard" -}}
+{{- if not (has $variant (list "standard" "topling")) -}}
+{{- fail "global.runtimeVariant must be standard or topling" -}}
+{{- end -}}
+{{- if eq $variant "topling" -}}
+{{- range $comp := list "pd" "store" "server" -}}
+{{- $component := get $.Values $comp -}}
+{{- $image := $component.image -}}
+{{- $tag := $image.tag | default $.Chart.AppVersion -}}
+{{- if not (hasSuffix "-topling" $tag) -}}{{- $_ := set $image "tag" (printf "%s-topling" $tag) -}}{{- end -}}
+{{- $selector := get $component "nodeSelector" | default dict -}}
+{{- range $key, $required := dict "kubernetes.io/arch" "amd64" "kubernetes.io/os" "linux" -}}
+{{- if and (hasKey $selector $key) (ne (get $selector $key) $required) -}}
+{{- fail (printf "%s.nodeSelector.%s must be %s for global.runtimeVariant=topling" $comp $key $required) -}}
+{{- end -}}
+{{- $_ := set $selector $key $required -}}
+{{- end -}}
+{{- $_ := set $component "nodeSelector" $selector -}}
+{{- end -}}
+{{- end -}}
 {{- $registry := trimSuffix "/" (get (.Values.global | default dict) "imageRegistry" | default "") -}}
 {{- if contains "://" $registry -}}{{- fail "global.imageRegistry must be a registry host/path without http:// or https://" -}}{{- end -}}
 {{- if $registry -}}
@@ -793,6 +814,11 @@ and the upgrade passes.
 {{- fail (printf "%s.storage.enabled cannot change on an initialized release: StatefulSet volumeClaimTemplates are immutable and changing storage can discard data. Use a fresh release and migrate data" $comp) -}}
 {{- end -}}
 
+{{- $liveRuntime := dig "metadata" "annotations" "hugegraph.apache.org/rocksdb-runtime" "standard" $live -}}
+{{- $runtime := get ($.Values.global | default dict) "runtimeVariant" | default "standard" -}}
+{{- if and $wasPersistent (ne $liveRuntime $runtime) -}}
+{{- fail (printf "global.runtimeVariant cannot change from %s to %s on an initialized persistent %s release. Use a fresh release with empty volumes and migrate data through graph APIs" $liveRuntime $runtime $comp) -}}
+{{- end -}}
 {{- $liveReplicas := int (dig "spec" "replicas" 0 $live) -}}
 {{- $desired := int (get (get $.Values $comp) "replicas") -}}
 {{- if and (gt $liveReplicas 0) (lt $desired $liveReplicas) -}}
