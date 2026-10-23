@@ -2161,6 +2161,8 @@ public final class GraphManager {
     }
 
     private void listenMetaChanges() {
+        this.metaManager.listenGraphSpaceAdd(ConsumerWrapper.wrap(this::graphSpaceRefreshHandler));
+        this.metaManager.listenGraphSpaceUpdate(ConsumerWrapper.wrap(this::graphSpaceRefreshHandler));
         this.metaManager.listenGraphSpaceRemove(ConsumerWrapper.wrap(this::graphSpaceRemoveHandler));
         this.metaManager.listenGraphAdd(ConsumerWrapper.wrap(this::graphAddHandler));
         this.metaManager.listenGraphRemove(ConsumerWrapper.wrap(this::graphRemoveHandler));
@@ -2965,6 +2967,13 @@ public final class GraphManager {
                 // Do not consume a notification newly retained by another cleanup owner.
                 this.pendingGraphAdds.remove(graphName);
             }
+        }
+    }
+
+    private <T> void graphSpaceRefreshHandler(T response) {
+        for (String name : this.metaManager.extractGraphSpacesFromResponse(response)) {
+            // Notifications carry only names: read current metadata so delayed events cannot restore old quotas.
+            this.readGraphSpace(name, true);
         }
     }
 
