@@ -90,7 +90,7 @@ function shell_quote() {
     printf "'%s'" "${1//$sq/$repl}"
 }
 
-# Validate a path-like value. $1=value  $2=label for the error  $3=crlf|cron|classpath
+# Validate a path-like value. $1=value  $2=label for the error  $3=crlf|cron|classpath|xlog
 #   crlf      : reject CR/LF. Call on the RAW value (e.g. $OPTARG) BEFORE
 #               canonicalize_dir/canonicalize_file.
 #   cron      : crlf + reject '%'.
@@ -100,6 +100,12 @@ function shell_quote() {
 #               ones. On Cygwin, a classpath converted with 'cygpath -p -w' is
 #               re-delimited on ';' instead, so a ';' in the path would do the
 #               same splitting there.
+#   xlog      : crlf + reject ':'. For a path embedded inside a JVM unified
+#               logging (-Xlog) value, whose own grammar ("tag-selection:
+#               output:decorators:output-options") also delimits on ':'. An
+#               embedded ':' there is not a Bash word-splitting problem --
+#               quoting the argv element does not help -- it desyncs the
+#               JVM's own parser and the JVM refuses to start.
 function reject_unsafe_path() {
     case "$1" in
         *[$'\n\r']*)
@@ -121,6 +127,12 @@ function reject_unsafe_path() {
                     return 1 ;;
                 *';'*)
                     echo "ERROR: $2 must not contain ';' (CLASSPATH separator on Cygwin)" >&2
+                    return 1 ;;
+            esac ;;
+        xlog)
+            case "$1" in
+                *:*)
+                    echo "ERROR: $2 must not contain ':' (JVM unified logging '-Xlog' field separator)" >&2
                     return 1 ;;
             esac ;;
     esac

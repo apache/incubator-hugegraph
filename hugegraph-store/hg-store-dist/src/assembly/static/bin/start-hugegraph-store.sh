@@ -119,25 +119,24 @@ fi
 
 while getopts "d:c:g:i:j:l:o:y:" arg; do
     case ${arg} in
-        # Validate the RAW value before canonicalization: command substitution
-        # strips trailing newlines, which would hide an embedded CR/LF.
-        c) reject_unsafe_path "$OPTARG" "-c conf dir" crlf || exit 1
-           CONF_OVERRIDE="$OPTARG" ;;
+        c) CONF_OVERRIDE="$OPTARG" ;;
         g) GC_OPTION="$OPTARG" ;;
-        i) reject_unsafe_path "$OPTARG" "-i pid file" crlf || exit 1
-           PID_FILE_OVERRIDE="$OPTARG" ;;
+        i) PID_FILE_OVERRIDE="$OPTARG" ;;
         j) USER_OPTION="$OPTARG" ;;
-        l) reject_unsafe_path "$OPTARG" "-l logs dir" crlf || exit 1
-           LOGS_OVERRIDE="$OPTARG" ;;
-        # The plugins dir is joined into ':'-separated classpath/agent settings
-        o) reject_unsafe_path "$OPTARG" "-o plugins dir" classpath || exit 1
-           PLUGINS_OVERRIDE="$OPTARG" ;;
+        l) LOGS_OVERRIDE="$OPTARG" ;;
+        o) PLUGINS_OVERRIDE="$OPTARG" ;;
         # Telemetry is used to collect metrics, traces and logs
         y) OPEN_TELEMETRY="$OPTARG" ;;
         d) DAEMON="$OPTARG" ;;
         ?) echo "USAGE: $0 [-d true|false] [-c conf_dir] [-g g1|ZGC] [-i pid_file] [-j xxx] [-l logs_dir] [-o plugins_dir] [-y true|false]" && exit 1 ;;
     esac
 done
+
+reject_unsafe_path "$CONF_OVERRIDE" "-c conf dir" crlf || exit 1
+reject_unsafe_path "$LOGS_OVERRIDE" "-l logs dir" crlf || exit 1
+reject_unsafe_path "$PID_FILE_OVERRIDE" "-i pid file" crlf || exit 1
+# The plugins dir is joined into ':'-separated classpath/agent settings
+reject_unsafe_path "$PLUGINS_OVERRIDE" "-o plugins dir" classpath || exit 1
 
 # Canonicalize relative path overrides to absolute paths.
 CONF_OVERRIDE="$(canonicalize_dir "$CONF_OVERRIDE" nocreate)" || exit 1
@@ -200,9 +199,11 @@ fi
 # Script-generated options are kept in arrays so that paths containing spaces
 # (overridden CONF/LOGS/PLUGINS) stay a single argument when passed to java.
 # User-supplied strings ($JAVA_OPTIONS / $USER_OPTION) keep the historical
-# word-splitting contract.
+# word-splitting contract. Built in JAVA_OPTIONS_ARR (not JAVA_OPTIONS) so the
+# exported scalar JAVA_OPTIONS stays intact for any child inheriting this
+# environment (e.g. a later no-arg restart) -- Bash arrays cannot be exported.
 JAVA_OPTIONS_ENV="${JAVA_OPTIONS}"
-JAVA_OPTIONS=()
+JAVA_OPTIONS_ARR=()
 if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
@@ -210,7 +211,7 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
              >> "${OUTPUT}"
         exit 1
     fi
-    JAVA_OPTIONS=("-Xms${MIN_MEM}m" "-Xmx${XMX}m" "-XX:MetaspaceSize=256M"
+    JAVA_OPTIONS_ARR=("-Xms${MIN_MEM}m" "-Xmx${XMX}m" "-XX:MetaspaceSize=256M"
                   "-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=${LOGS}")
 
     # Split user-supplied options on whitespace (legacy behaviour).
@@ -219,12 +220,17 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     # at the first line.
     USER_OPTIONS=()
     read -r -d '' -a USER_OPTIONS <<< "${USER_OPTION}"$'\0' || true
-    JAVA_OPTIONS+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
+    JAVA_OPTIONS_ARR+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
 
     # Rolling out detailed GC logs
-    JAVA_OPTIONS+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
+    # The JVM's -Xlog grammar delimits on ':', so an embedded ':' in $LOGS
+    # desyncs the parser ("Invalid decorator ...") and the JVM refuses to
+    # start -- quoting this argv element does not help, since Bash-level
+    # splitting is not the problem. Reject it here, before launch.
+    reject_unsafe_path "$LOGS" "-l logs dir (GC log)" xlog || exit 1
+    JAVA_OPTIONS_ARR+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
 else
-    read -r -d '' -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
+    read -r -d '' -a JAVA_OPTIONS_ARR <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
 fi
 
 # Keep JVM/caller GC selection by default; explicitly select G1 when requested.
@@ -232,17 +238,17 @@ case "$GC_OPTION" in
     ""|g1|G1)
         if [[ "$GC_OPTION" == g1 || "$GC_OPTION" == G1 ]]; then
             echo "Using G1GC"
-            JAVA_OPTIONS+=("-XX:+UseG1GC")
+            JAVA_OPTIONS_ARR+=("-XX:+UseG1GC")
         else
             echo "Using JVM garbage collector configuration"
         fi
-        JAVA_OPTIONS=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
+        JAVA_OPTIONS_ARR=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
                       "-XX:G1RSetUpdatingPauseTimePercent=5"
-                      ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"})
+                      ${JAVA_OPTIONS_ARR[@]+"${JAVA_OPTIONS_ARR[@]}"})
         ;;
     zgc|ZGC)
         echo "Using ZGC as the default garbage collector (requires Java 17 or later)"
-        JAVA_OPTIONS+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
+        JAVA_OPTIONS_ARR+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
                        "-XX:ConcGCThreads=2" "-XX:ParallelGCThreads=6"
                        "-XX:ZCollectionInterval=120" "-XX:ZAllocationSpikeTolerance=5"
                        "-XX:+UnlockDiagnosticVMOptions" "-XX:-ZProactive")
@@ -333,19 +339,19 @@ fi
 
 # Turn on security check
 # NOTE: "$JVM_MODULE_OPTIONS" and "$OUTPUT" are passed/redirected as single
-# quoted arguments, and JVM_OPTIONS/JAVA_OPTIONS are expanded as arrays
+# quoted arguments, and JVM_OPTIONS/JAVA_OPTIONS_ARR are expanded as arrays
 # ("${JVM_OPTIONS[@]}"), so an overridden CONF/LOGS/PLUGINS path containing a
 # space stays one argument instead of being split by word-splitting.
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphStoreServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" \
             "${JAVA_MAIN[@]}" "$@" &
     else
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" \
             "${JAVA_MAIN[@]}" "$@" >> "${OUTPUT}" 2>&1 &
     fi
@@ -360,12 +366,12 @@ else
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" \
             "${JAVA_MAIN[@]}" "$@"
     else
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphStore" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" \
             "${JAVA_MAIN[@]}" "$@" >> "${OUTPUT}" 2>&1
     fi

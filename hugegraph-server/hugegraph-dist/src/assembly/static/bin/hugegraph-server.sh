@@ -136,16 +136,18 @@ fi
 # Script-generated options are kept in arrays so that overridden paths
 # containing spaces (CONF/LOGS/PLUGINS) remain a single argument when passed to
 # java. User-supplied strings ($JAVA_OPTIONS / $USER_OPTION) keep the historical
-# whitespace-splitting contract.
+# whitespace-splitting contract. Built in JAVA_OPTIONS_ARR (not JAVA_OPTIONS)
+# so the exported scalar JAVA_OPTIONS stays intact for any child inheriting
+# this environment -- Bash arrays cannot be exported.
 JAVA_OPTIONS_ENV="${JAVA_OPTIONS}"
-JAVA_OPTIONS=()
+JAVA_OPTIONS_ARR=()
 if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
         report_error "Failed to start HugeGraphServer, requires at least ${MIN_MEM}MB free memory"
         exit 1
     fi
-    JAVA_OPTIONS=("-Xms${MIN_MEM}m" "-Xmx${XMX}m")
+    JAVA_OPTIONS_ARR=("-Xms${MIN_MEM}m" "-Xmx${XMX}m")
 
     # Split user-supplied options on whitespace (legacy behaviour).
     # Use NUL (not newline) as the read delimiter so multi-line values
@@ -153,12 +155,17 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     # at the first line.
     USER_OPTIONS=()
     read -r -d '' -a USER_OPTIONS <<< "${USER_OPTION}"$'\0' || true
-    JAVA_OPTIONS+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
+    JAVA_OPTIONS_ARR+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
 
     # Rolling out detailed GC logs
-    #JAVA_OPTIONS+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
+    # If enabling this: first add
+    #   reject_unsafe_path "$LOGS" "-l logs dir (GC log)" xlog || exit 1
+    # before it. $LOGS is not currently guarded against ':' -- the JVM's
+    # -Xlog grammar also delimits on ':', so an embedded one desyncs the
+    # parser and the JVM refuses to start (see start-hugegraph-store.sh).
+    #JAVA_OPTIONS_ARR+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
 else
-    read -r -d '' -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
+    read -r -d '' -a JAVA_OPTIONS_ARR <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
 fi
 
 # Keep JVM/caller GC selection by default; explicitly select G1 when requested.
@@ -166,17 +173,17 @@ case "$GC_OPTION" in
     ""|g1|G1)
         if [[ "$GC_OPTION" == g1 || "$GC_OPTION" == G1 ]]; then
             echo "Using G1GC"
-            JAVA_OPTIONS+=("-XX:+UseG1GC")
+            JAVA_OPTIONS_ARR+=("-XX:+UseG1GC")
         else
             echo "Using JVM garbage collector configuration"
         fi
-        JAVA_OPTIONS=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
+        JAVA_OPTIONS_ARR=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
                       "-XX:G1RSetUpdatingPauseTimePercent=5"
-                      ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"})
+                      ${JAVA_OPTIONS_ARR[@]+"${JAVA_OPTIONS_ARR[@]}"})
         ;;
     zgc|ZGC)
         echo "Using ZGC as the default garbage collector (requires Java 17 or later)"
-        JAVA_OPTIONS+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
+        JAVA_OPTIONS_ARR+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
                        "-XX:ConcGCThreads=2" "-XX:ParallelGCThreads=6"
                        "-XX:ZCollectionInterval=120" "-XX:ZAllocationSpikeTolerance=5"
                        "-XX:+UnlockDiagnosticVMOptions" "-XX:-ZProactive")
@@ -218,7 +225,7 @@ EOF
         SECURITY_PROPERTIES_OVERRIDDEN="false"
         JAVA_OPTIONS_ENV_WORDS=()
         read -r -d '' -a JAVA_OPTIONS_ENV_WORDS <<< "${_JAVA_OPTIONS:-}"$'\0' || true
-        for OPTION in ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"} \
+        for OPTION in ${JAVA_OPTIONS_ARR[@]+"${JAVA_OPTIONS_ARR[@]}"} \
                       ${JAVA_OPTIONS_ENV_WORDS[@]+"${JAVA_OPTIONS_ENV_WORDS[@]}"}; do
             case "${OPTION}" in
                 -Djava.security.properties=)
@@ -399,13 +406,13 @@ esac
 # Turn on security check
 if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
     exec "${JAVA[@]}" @"${JVM_MODULE_OPTIONS}" -Dname="HugeGraphServer" \
-        "${JVM_OPTIONS[@]}" ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"} \
+        "${JVM_OPTIONS[@]}" ${JAVA_OPTIONS_ARR[@]+"${JAVA_OPTIONS_ARR[@]}"} \
         ${SECURITY_MANAGER_OPTION[@]+"${SECURITY_MANAGER_OPTION[@]}"} -cp "${CLASSPATH}:" \
         org.apache.hugegraph.bootstrap.HugeGraphServerBootstrap \
         "${OPEN_SECURITY_CHECK}" "${GREMLIN_SERVER_CONF}" "${REST_SERVER_CONF}"
 else
     exec "${JAVA[@]}" @"${JVM_MODULE_OPTIONS}" -Dname="HugeGraphServer" \
-        "${JVM_OPTIONS[@]}" ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"} \
+        "${JVM_OPTIONS[@]}" ${JAVA_OPTIONS_ARR[@]+"${JAVA_OPTIONS_ARR[@]}"} \
         ${SECURITY_MANAGER_OPTION[@]+"${SECURITY_MANAGER_OPTION[@]}"} -cp "${CLASSPATH}:" \
         org.apache.hugegraph.bootstrap.HugeGraphServerBootstrap \
         "${OPEN_SECURITY_CHECK}" "${GREMLIN_SERVER_CONF}" "${REST_SERVER_CONF}" \

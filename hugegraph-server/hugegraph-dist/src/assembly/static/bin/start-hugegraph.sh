@@ -46,18 +46,14 @@ SCRIPTS="$TOP/scripts"
 # Note: keep ':' in the end of the string to indicate the option needs a value
 while getopts "c:d:g:i:j:l:m:o:p:s:t:y:" arg; do
      case ${arg} in
-         c) reject_unsafe_path "$OPTARG" "-c conf dir" crlf || exit 1
-            CONF_OVERRIDE="$OPTARG" ;;
+         c) CONF_OVERRIDE="$OPTARG" ;;
          d) DAEMON="$OPTARG" ;;
          g) GC_OPTION="$OPTARG" ;;
-         i) reject_unsafe_path "$OPTARG" "-i pid file" crlf || exit 1
-            PID_FILE_OVERRIDE="$OPTARG" ;;
+         i) PID_FILE_OVERRIDE="$OPTARG" ;;
          j) USER_OPTION="$OPTARG" ;;
-         l) reject_unsafe_path "$OPTARG" "-l logs dir" crlf || exit 1
-            LOGS_OVERRIDE="$OPTARG" ;;
+         l) LOGS_OVERRIDE="$OPTARG" ;;
          m) OPEN_MONITOR="$OPTARG" ;;
-         o) reject_unsafe_path "$OPTARG" "-o plugins dir" classpath || exit 1
-            PLUGINS_OVERRIDE="$OPTARG" ;;
+         o) PLUGINS_OVERRIDE="$OPTARG" ;;
          p) PRELOAD="$OPTARG" ;;
          s) OPEN_SECURITY_CHECK="$OPTARG" ;;
          t) SERVER_STARTUP_TIMEOUT_S="$OPTARG" ;;
@@ -67,6 +63,12 @@ while getopts "c:d:g:i:j:l:m:o:p:s:t:y:" arg; do
          ?) exit_with_usage_help ;;
      esac
 done
+
+reject_unsafe_path "$CONF_OVERRIDE" "-c conf dir" crlf || exit 1
+reject_unsafe_path "$LOGS_OVERRIDE" "-l logs dir" crlf || exit 1
+reject_unsafe_path "$PID_FILE_OVERRIDE" "-i pid file" crlf || exit 1
+# The plugins dir is joined into ':'-separated classpath/agent settings
+reject_unsafe_path "$PLUGINS_OVERRIDE" "-o plugins dir" classpath || exit 1
 
 # Canonicalize relative path overrides to absolute paths.
 CONF_OVERRIDE="$(canonicalize_dir "$CONF_OVERRIDE" nocreate)" || exit 1

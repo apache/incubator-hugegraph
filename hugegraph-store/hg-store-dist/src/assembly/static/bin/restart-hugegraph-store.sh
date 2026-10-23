@@ -31,13 +31,13 @@ BIN=$(abs_path)
 TOP="$(cd "$BIN"/../ && pwd)"
 
 DAEMON_ARG=""
-CONF_ARG=""
 GC_ARG=""
-PID_ARG=""
 USER_ARG=""
-LOGS_ARG=""
-PLUGINS_ARG=""
 TELEMETRY_ARG=""
+CONF_ARG="${CONF_OVERRIDE:-}"
+LOGS_ARG="${LOGS_OVERRIDE:-}"
+PLUGINS_ARG="${PLUGINS_OVERRIDE:-}"
+PID_ARG="${PID_FILE_OVERRIDE:-}"
 
 while getopts "d:c:g:i:j:l:o:y:" arg; do
     case ${arg} in

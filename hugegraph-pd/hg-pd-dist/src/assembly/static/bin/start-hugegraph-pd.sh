@@ -139,9 +139,11 @@ fi
 # Script-generated options are kept in arrays so that overridden paths
 # containing spaces (CONF/LOGS/PLUGINS) remain a single argument when passed
 # to java. User-supplied strings ($JAVA_OPTIONS / $USER_OPTION) keep the
-# historical whitespace-splitting contract.
+# historical whitespace-splitting contract. Built in JAVA_OPTIONS_ARR (not
+# JAVA_OPTIONS) so the exported scalar JAVA_OPTIONS stays intact for any
+# child inheriting this environment -- Bash arrays cannot be exported.
 JAVA_OPTIONS_ENV="${JAVA_OPTIONS}"
-JAVA_OPTIONS=()
+JAVA_OPTIONS_ARR=()
 if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     XMX=$(calc_xmx $MIN_MEM $MAX_MEM)
     if [ $? -ne 0 ]; then
@@ -149,7 +151,7 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
              >> "${OUTPUT}"
         exit 1
     fi
-    JAVA_OPTIONS=("-Xms${MIN_MEM}m" "-Xmx${XMX}m" "-XX:+HeapDumpOnOutOfMemoryError"
+    JAVA_OPTIONS_ARR=("-Xms${MIN_MEM}m" "-Xmx${XMX}m" "-XX:+HeapDumpOnOutOfMemoryError"
                   "-XX:HeapDumpPath=${LOGS}")
 
     # Split user-supplied options on whitespace (legacy behaviour).
@@ -158,12 +160,17 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     # at the first line.
     USER_OPTIONS=()
     read -r -d '' -a USER_OPTIONS <<< "${USER_OPTION}"$'\0' || true
-    JAVA_OPTIONS+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
+    JAVA_OPTIONS_ARR+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
 
     # Rolling out detailed GC logs
-    #JAVA_OPTIONS+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
+    # If enabling this: first add
+    #   reject_unsafe_path "$LOGS" "-l logs dir (GC log)" xlog || exit 1
+    # before it. $LOGS is not currently guarded against ':' -- the JVM's
+    # -Xlog grammar also delimits on ':', so an embedded one desyncs the
+    # parser and the JVM refuses to start (see start-hugegraph-store.sh).
+    #JAVA_OPTIONS_ARR+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
 else
-    read -r -d '' -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
+    read -r -d '' -a JAVA_OPTIONS_ARR <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
 fi
 
 # Keep JVM/caller GC selection by default; explicitly select G1 when requested.
@@ -171,17 +178,17 @@ case "$GC_OPTION" in
     ""|g1|G1)
         if [[ "$GC_OPTION" == g1 || "$GC_OPTION" == G1 ]]; then
             echo "Using G1GC"
-            JAVA_OPTIONS+=("-XX:+UseG1GC")
+            JAVA_OPTIONS_ARR+=("-XX:+UseG1GC")
         else
             echo "Using JVM garbage collector configuration"
         fi
-        JAVA_OPTIONS=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
+        JAVA_OPTIONS_ARR=("-XX:+ParallelRefProcEnabled" "-XX:InitiatingHeapOccupancyPercent=50"
                       "-XX:G1RSetUpdatingPauseTimePercent=5"
-                      ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"})
+                      ${JAVA_OPTIONS_ARR[@]+"${JAVA_OPTIONS_ARR[@]}"})
         ;;
     zgc|ZGC)
         echo "Using ZGC as the default garbage collector (requires Java 17 or later)"
-        JAVA_OPTIONS+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
+        JAVA_OPTIONS_ARR+=("-XX:+UseZGC" "-XX:+UnlockExperimentalVMOptions"
                        "-XX:ConcGCThreads=2" "-XX:ParallelGCThreads=6"
                        "-XX:ZCollectionInterval=120" "-XX:ZAllocationSpikeTolerance=5"
                        "-XX:+UnlockDiagnosticVMOptions" "-XX:-ZProactive")
@@ -268,18 +275,18 @@ fi
 
 # Turn on security check
 # NOTE: "$JVM_MODULE_OPTIONS" and "$OUTPUT" are passed/redirected as single
-# quoted arguments, and JVM_OPTIONS/JAVA_OPTIONS are expanded as arrays
+# quoted arguments, and JVM_OPTIONS/JAVA_OPTIONS_ARR are expanded as arrays
 # ("${JVM_OPTIONS[@]}"), so an overridden CONF/LOGS/PLUGINS path containing a
 # space stays one argument instead of being split by word-splitting.
 if [[ $DAEMON == "true" ]]; then
     echo "Starting HugeGraphPDServer in daemon mode..."
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphPD" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" "${JAVA_MAIN[@]}" "$@" &
     else
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphPD" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" "${JAVA_MAIN[@]}" "$@" >> "${OUTPUT}" 2>&1 &
     fi
     PID="$!"
@@ -293,11 +300,11 @@ else
     echo "[+pid] $$"
     if [[ "${STDOUT_MODE:-false}" == "true" ]]; then
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphPD" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" "${JAVA_MAIN[@]}" "$@"
     else
         exec "${JAVA}" "@${JVM_MODULE_OPTIONS}" -Dname="HugeGraphPD" \
-            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS[@]}" \
+            "${JVM_OPTIONS[@]}" "${JAVA_OPTIONS_ARR[@]}" \
             -Dspring.config.location="${CONF}/application.yml" "${JAVA_MAIN[@]}" "$@" >> "${OUTPUT}" 2>&1
     fi
 fi

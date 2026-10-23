@@ -52,7 +52,7 @@ function restart_server() {
     local stop_old=$1
     if [ "$stop_old" == "true" ]; then
         # Don't remove monitor; stop the pid file the caller used.
-        "$BIN"/stop-hugegraph.sh ${PID_FILE_OVERRIDE:+-i "$PID_FILE_OVERRIDE"} false
+        "$BIN"/stop-hugegraph.sh ${PID_FILE_OVERRIDE:+-i "$PID_FILE_OVERRIDE"} -m false
     fi
     record_monitor_log "Ready to restart $PROC_NAME"
     # Don't add monitor again, but restart with path overrides
