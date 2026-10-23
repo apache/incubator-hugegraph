@@ -189,17 +189,24 @@ helm lint helm/hugegraph --set seatunnel.enabled=true
 
 版本变化时更新父 Chart 的依赖版本，移除旧归档，提交新归档及 `Chart.lock`。原生 `file://../../../seatunnel/deploy/kubernetes/seatunnel` 依赖负责打包；最终安装使用随 HugeGraph 发布的归档，不需要相邻源码仓库或联网下载 Chart。
 
-2026-10-23 本地验证记录（台北时间）：
+2026-10-23 本地验证记录（台北时间）：测试使用独立 kind 集群，直接安装 HugeGraph 仓库携带的 `seatunnel-helm-3.0.1-hugegraph.1.tgz`。验证镜像由经过官方 SHA-512 校验的 SeaTunnel 3.0.0 二进制、经过 Maven 校验的连接器和 Temurin 17 JRE 构建；HugeGraph 1.8.0/RocksDB 在集群外的隔离本机实例运行。
 
 | 检查 | 结果与范围 |
 |---|---|
 | Python Helm 回归 | 23 项通过 |
 | Helm 单元测试 | 309 项通过 |
 | HugeGraph 推送前检查 | `mvn editorconfig:format` 通过；`mvn clean compile -Dmaven.javadoc.skip=true` 全部 38 模块通过 |
-| Kubernetes 真实 API | 安装及模式切换已执行；业务 Pod Ready 为 0，尚未证明集群内引擎可用 |
+| Kubernetes 单机启动 | 22:08，Pod `1/1 Running`、重启 0；REST 正常，实际注册一个 worker |
+| Kubernetes 单机导入 | CLI 作业 `1166015307609800705`：读取 10、写入 10、失败 0；graph_a 为 10 条 |
+| Kubernetes 单机 A → B | CLI 作业 `1166015324982607873`：读取 10、写入 10、失败 0；两图各 10 条，全部 name/age 属性一致 |
+| Kubernetes 切到集群 | 22:10，1 master + 1 worker 均 Ready、重启 0；复制任务 `1166015886427947011` 读取 10、写入 10、失败 0；再次核对两图内容一致 |
+| Kubernetes 切回单机 | 22:12，恢复一个 Ready 混合节点，REST 正常；两图数据仍各 10 条且内容一致 |
+| 启动进程与凭据传递 | 两种模式的容器 PID 1 均为 Java；Secret keyRef → Pod 环境变量 → 未改写的 HOCON 凭据占位符 → CLI 提交通过 |
 | 本机引擎启动 | 官方 SeaTunnel 3.0.0 二进制、Java 17；`/overview` 返回版本 3.0.0、一个 worker |
 | 直接导入 graph_a | 固定十条 FakeSource 数据；作业 `1166014497995882497` 为 `FINISHED`，读取与提交均为 10 |
 | graph_a → graph_b | 作业 `1166014497996079105` 为 `FINISHED`；使用文档中的 CLI 与环境变量方式再次复制，作业 `1166014645144649729` 读取 10、写入 10、失败 0 |
 | 图数据核对 | 隔离的 HugeGraph 1.8.0/RocksDB；Gremlin 返回 `count_a=10`、`count_b=10`、`same=true`，逐条比对 `person_01` 至 `person_10` 的 name/age 完全一致 |
 
-以上业务记录来自本机二进制引擎，不等同于 Kubernetes 内完整业务验证；隔离 Kubernetes 中的引擎启动和同样两条业务路径正在补测。此次数据样例只有一个顶点标签，没有验证多标签、边、HStore 或生产故障恢复。
+集群测试显式设置 `master.replicas=1`、`worker.replicas=1`、`engineConfig.backup-count=0`，用于验证分离角色及数据路径，不是 HA 测试。切换时观察到约 30 秒重新选举窗口，因此不能承诺无中断切换。全部检查完成后已清理本次临时集群及测试进程。
+
+本次覆盖的是 Kubernetes 中的 SeaTunnel 访问外部 HugeGraph/RocksDB，没有验证完整 HugeGraph HStore Helm 集群、多标签、边、生产故障恢复或 CNI 对 NetworkPolicy 的实际执行。隔离 HugeGraph 关闭认证，因此仅确认了凭据注入与变量解析，没有验证认证授权。公开默认镜像的连接器清单仍需按实际镜像检查。
