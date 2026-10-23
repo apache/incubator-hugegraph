@@ -1041,6 +1041,13 @@ public class PDClient {
         handleResponseError(response.getHeader());
     }
 
+    public void deleteGraphSpace(String graphSpaceName) throws PDException {
+        Pdpb.DeleteGraphSpaceRequest request = Pdpb.DeleteGraphSpaceRequest.newBuilder()
+                .setHeader(header).setGraphSpaceName(graphSpaceName).build();
+        Pdpb.DeleteGraphSpaceResponse response = getStub().deleteGraphSpace(request);
+        handleResponseError(response.getHeader());
+    }
+
     public List<Metapb.GraphSpace> getGraphSpace(String graphSpaceName) throws
                                                                         PDException {
         Pdpb.GetGraphSpaceRequest.Builder builder = Pdpb.GetGraphSpaceRequest.newBuilder();
