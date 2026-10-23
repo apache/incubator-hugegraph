@@ -406,12 +406,17 @@ keeps that fixed budget; the Store logs a warning naming the old value at startu
 to `0` or remove it, or set `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` in Docker.
 
 PD can also hold the old value. When PD has no shared copy yet, the first Store to start uploads
-its local `application-pd.yml` to PD (KV key `S:FS`), and every Store whose local file is not
-newer than PD's `S:Timestamp` loads that copy and writes it over its local file. Updating the
-Store package or a local file therefore does not help while PD's copy still sets
-`32000000000`: change `rocksdb.total_memory_size` to `0` or remove it in the copy PD keeps, or
-set `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE` (or `-Drocksdb.total_memory_size`) on every Store, which
-the Store keeps above PD's copy.
+its local `application-pd.yml` to PD (KV key `S:FS`). At startup a Store loads that copy over its
+local file only when it has no local file or the file is no newer than PD's `S:Timestamp`. The
+upload sets no timestamp and a missing one counts as 0, so changing `S:FS` alone changes nothing.
+The simplest upgrade is to set `HG_STORE_ROCKSDB_TOTAL_MEMORY_SIZE=0` (or
+`-Drocksdb.total_memory_size=0`) on every Store and restart it; the Store keeps this value above
+both its local file and PD's copy. To change the shared copy instead, set
+`rocksdb.total_memory_size` to `0` or remove it in `S:FS`, then put the current time in
+milliseconds into `S:Timestamp` through PD's KV service (gRPC `KvService.put`). Every running Store
+watches that key: it reloads PD's copy, writes it over its local file and restarts itself with
+`bin/restart-hugegraph-store.sh` within 60 seconds. A stopped Store loads the copy at its next
+start.
 
 ### Server Configuration
 
