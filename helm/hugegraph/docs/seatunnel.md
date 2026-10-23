@@ -235,47 +235,10 @@ done
 
 验收应同时核对属性键类型、基数、标签、主键、边端点定义、索引和 Schema ID，以及全部顶点 ID/属性、边 ID/端点/属性；只比较数量或作业状态不够。相关选项见官方 [HugeGraph Source](https://github.com/apache/seatunnel/blob/v3.0.0/docs/en/connectors/source/HugeGraph.md) 和 [Sink](https://github.com/apache/seatunnel/blob/v3.0.0/docs/en/connectors/sink/HugeGraph.md)。
 
-## 已完成实测记录：原生 hybrid 基线
+## 使用限制
 
-2026 年 10 月 23–24 日（Asia/Singapore）完成以下验证，均使用本页的一套原生 hybrid StatefulSet。源、目标是两个独立的 Helm 环境，各有 **1 PD + 1 Store + 1 Server，后端为 HStore**，分别使用自己的 PVC 和认证。源 `graph_a` 与目标 `graph_b` 不共享后端；另在目标环境的 `graph_a` 测试十条数据直接导入。
+集群模式下，应逐个 hybrid Pod 确认 Workers 和成员数与副本数一致；仅 Pod Ready 不能说明成员已组成同一个集群。Hazelcast DNS 发现使用模板中的 `service-port: 5801`，应与引擎监听端口保持一致。
 
-SeaTunnel 使用原始 `apache/seatunnel:3.0.0` 镜像。实际校验了 OCI 清单、配置及全部九层的大小和 SHA-256，并在容器中确认 HugeGraph、FakeSource、Console 连接器及内置 UI 均存在；无需自建镜像。镜像索引 digest 为 `sha256:914fcf37b2d5acdf9f95f7dbbd7d4c62d150fcbc5ff3e5f59957d65840fea8dd`，实际运行 amd64 清单 digest 为 `sha256:dd8f357dfed2192a68184aeac41507e5529eb06c208b12aae4bf6466ed0a0bb0`。
-
-测试环境资源有限，kind 节点使用 FUSE overlay 承载官方镜像原始层；PD、Store、Server 则复用此前从源码构建的缓存运行镜像。以上均为测试基础设施设置，不是 Chart 的部署依赖。HugeGraph 测试运行产物的源码版本为 `f60ad3e3bfc71d4404956fd2dbfb62c7bc002f13`；本轮同时对最新 `master` 基础上的改动完成了编译检查。
-
-| 验证项 | 实际结果 |
-| --- | --- |
-| 直接导入 | 原始 `hugegraph-sink.conf` 未修改，作业 `1166045557131575297` 为 `FINISHED`，读 10、写 10、失败 0；目标图查询及逐条内容核对均为 10 条 |
-| Schema 复制 | 空目标先复制 10 个属性键、2 个顶点标签、2 个边标签、3 个索引；保留原 Schema ID，逐项核对类型、基数、ID 策略、nullable、索引和自定义元数据 |
-| 单机复制 | 00:08:49 完成，1 个 hybrid 节点；4 个作业全部 `FINISHED`，1000 个顶点、2400 条边的 ID、全部属性和边端点与源图相同 |
-| 集群复制 | 00:18:51 完成，2 个 hybrid 节点；人为扰动目标一个属性后重新运行 4 个作业，目标恢复到与源图完全一致；每个 Pod 在作业前后均报告 Workers=2 |
-| 切回单机 | 00:21:16 完成只读复查，Workers=1，运行中作业为 0；全部 Schema、1000 个顶点、2400 条边及另图的 10 条导入数据保持一致 |
-| 升级影响 | 单机 → 集群 → 单机使用同一个 StatefulSet；两环境原有 6 个 HugeGraph Pod UID、4 个 PVC、6 个认证 Secret 均未变化，Pod 全部 Ready 且重启为 0；匿名访问 401、有效账号 200 |
-| 内置前端 | 真实 Chromium（Asia/Singapore）验证两种模式的 Overview、作业列表和 DAG：Workers 分别为 1、2；选中作业的 DAG 均为 2 节点、1 条连接，显示读写各 800；浏览器 JS、关键 API、静态资源错误均为 0 |
-
-复制作业的逐项结果如下；两种模式每个作业的失败数均为 0。
-
-| 标签 | 类型 | 读取 / 写入 | 单机作业 ID | 集群作业 ID |
-| --- | --- | --- | --- | --- |
-| person | PRIMARY_KEY 顶点 | 800 / 800 | 1166045485111181313 | 1166048035369648130 |
-| company | CUSTOMIZE_NUMBER 顶点 | 200 / 200 | 1166045504388202497 | 1166048053988163586 |
-| works_at | 边 | 800 / 800 | 1166045519504474113 | 1166048070853459969 |
-| knows | MULTIPLE 边 | 1600 / 1600 | 1166045539670687745 | 1166048087110582273 |
-
-验收使用全量数据比较，单机、集群和切回单机后的 Schema、顶点、边三组规范化哈希分别完全一致。Schema 比较仅忽略元素顶层的运行状态及系统 `user_data.~create_time`，保留业务自定义的 `status/create_time` 元数据。另验证了 SET 内容、LIST 顺序和重复元素、可空属性、自定义元数据、同端点且 sort key 为 2020/2021 的两条多重边；三个索引均为 `CREATED`，范围查询 `age >= 80` 返回 88 条，二级索引查询 `company_123` 返回 1 条，源、目标查询结果相同。
-
-集群测试曾发现两个 Pod 虽然 Ready，却各自形成单节点集群。原因是 Hazelcast DNS 发现未指定端口时使用 5701，而引擎监听 5801；模板已明确配置 `service-port: 5801`。修复后逐 Pod 确认 Workers=2、成员数为 2，持续观察一分钟，再重新执行上述集群作业和前端验证。仅 Pod Ready 不作为集群组建成功的依据。
-
-上述基线还通过了 22 项 Python Helm 回归、309 项 Helm 单元测试（36 个 suite、4 个快照）、两种模式的 strict Helm lint，以及目标环境的 `helm test --logs`。`mvn editorconfig:format` 和 `mvn clean compile -Dmaven.javadoc.skip=true` 的 38 个模块均通过。
-
-本次范围与已知限制：
-
-- 已覆盖 `PRIMARY_KEY`、`CUSTOMIZE_NUMBER`，暂不覆盖 `AUTOMATIC` 顶点的无损复制；后者需要解决新旧顶点 ID 与边端点的对应关系。
-- 官方 3.0.0 UI 的 Duration 显示存在上游问题：无时区时间字符串在新加坡浏览器中会产生 8 小时偏差，且已完成作业的显示时长仍随当前时间增长。以 CLI/REST 的完成状态及开始、结束时间核对实际结果；本次未修改上游 UI 或硬编码时区。
-- 测试覆盖停止作业后的模式升级和数据保留，未验证运行中作业不中断切换、生产 HA、持久化恢复或 CNI 的实际网络隔离。默认临时 checkpoint 目录不能据此视为持久化恢复方案。
-
-## 本轮增量验证记录
-
-本轮新增 SeaTunnel HTTP 入口继承 easy/strict、独立原生 HTTP Basic 认证、同 release 的 `HG_*` 默认连接信息，以及启动时挂载 Source/Sink 演示文件。上一节的原生 hybrid 基线记录验证了引擎、跨环境 Schema／点／边复制及内置 UI，不作为这些新增行为的运行验证结论。
-
-本轮增量实测结果将在完成后补充。
+- 示例支持 `PRIMARY_KEY`、`CUSTOMIZE_NUMBER`，不支持 `AUTOMATIC` 顶点的无损复制；后者需要解决新旧顶点 ID 与边端点的对应关系。
+- 官方 3.0.0 UI 的 Duration 显示存在上游问题：无时区时间字符串在新加坡浏览器中会产生 8 小时偏差，且已完成作业的显示时长仍随当前时间增长。以 CLI/REST 的完成状态及开始、结束时间核对实际结果。
+- 模式切换前应停止作业；本集成不承诺运行中作业无中断切换、生产 HA 或持久化恢复。默认临时 checkpoint 目录不是持久化恢复方案，NetworkPolicy 的实际隔离依赖 CNI 支持。
