@@ -46,6 +46,11 @@ RUN --mount=type=cache,id=hugegraph-maven-${SOURCE_REVISION},target=/root/.m2,sh
     rm -f /tmp/hugegraph-build-cacerts; \
     rm ./hugegraph-server/*.tar.gz ./hugegraph-pd/*.tar.gz ./hugegraph-store/*.tar.gz
 
+# Optional local JNI directory: --build-context topling-jni=/path/to/directory.
+# An empty default stage keeps ordinary and URL-based builds self-contained.
+FROM scratch AS topling-jni
+# HStore intentionally does not consume this stage and keeps its standard runtime.
+
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13
 FROM eclipse-temurin:17-jdk-jammy
