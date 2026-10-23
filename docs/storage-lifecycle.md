@@ -495,6 +495,49 @@ For a distributed graph, Server uses `backend=hstore`; PD and Store own its pers
 storage. A standalone Server keeps `backend=rocksdb`. The launcher selection and the
 business provider must agree. A mismatch fails before opening that component's database.
 
+### Docker, Compose and Helm
+
+Prepared image variants reuse the normal deployment mechanisms. Select
+`hugegraph/hugegraph:latest-topling` for a standalone Server, or the matching
+`hugegraph/pd`, `hugegraph/store` and `hugegraph/server` tags for distributed
+HStore. Published versions use `<version>-topling`. Topling images support Linux
+amd64 and include the verified community JNI runtime; startup does not download
+dependencies. Source image builds select it with `RUNTIME_VARIANT=topling` and use
+the immutable release URL and trusted SHA-256 in
+[`docker/topling-runtime.env`](../docker/topling-runtime.env). Custom JNI URL/checksum
+build inputs are optional overrides. The unpacked-distribution preparation below
+still requires an explicit JAR and its trusted checksum.
+
+Compose uses its existing `HUGEGRAPH_VERSION=latest-topling` parameter. Helm uses
+`--set global.runtimeVariant=topling` to select matching images and amd64 scheduling.
+The HStore Server keeps `backend=hstore` and uses the Topling-enabled PD and Store;
+it does not load a local Topling runtime. The images configure the business
+provider and launcher together. See the [Compose guide](../docker/README.md#toplingdb-images)
+and [Helm guide](../helm/hugegraph/README.md#toplingdb-runtime) for complete commands,
+source builds, custom registries and immutable image digests.
+
+Validate a new deployment first, then qualify a normal stop and image switch using
+existing RocksDB data. With the default community profile, Topling uses standard
+BlockBasedTable SSTs; a compatible existing database can be opened directly, without
+graph API export/import. Preserve the Compose project or Helm release, credentials,
+data/WAL paths and named volumes/PVCs. The chart permits a runtime change while
+retaining its storage and Raft membership protections. The images keep binaries and
+JNI outside Docker data volumes so a Compose image change loads the selected runtime.
+
+The image publication gate checks standard-to-Topling compatibility with standard
+images built from the same HugeGraph source and the pinned community JNI (currently
+RocksDB API 8.10.2). It checks real native-library selection, persisted data, schema,
+indexes, continued writes and normal restart. This does not establish compatibility
+between arbitrary HugeGraph/RocksDB releases or custom native table formats. Use a
+matching version pair, retain a backup and qualify representative data. Topling
+Latest is manual and may lag standard Latest; formal Release publishes both variants
+from one Apache HugeGraph commit.
+
+For an older custom Docker deployment with data stored only in an anonymous volume
+covering the entire installation, preserve its database directories explicitly before
+changing to data-only mounts. The supplied Compose data mounts already keep these
+directories separate. See the linked deployment guides for the stop/switch/up commands.
+
 ### Standalone Server setup
 
 ![Switch RocksDB to ToplingDB](images/switch-rocksdb-to-toplingdb.png)
@@ -656,9 +699,12 @@ Stop incoming work and use the component's normal stop script. PD drains its sch
 metadata work, joins Raft and closes the metadata database and native options. Do not
 use a forced kill as evidence of normal resource cleanup.
 
-To return to standard RocksDB, stop the component, unset `TOPLINGDB_ROCKSDB_PROVIDER`
-and set its business provider back to `rocksdb`. Use the corresponding standard-provider
-data directory; do not test a provider switch by reusing the other provider's database.
+To return to standard RocksDB, stop the component normally, unset
+`TOPLINGDB_ROCKSDB_PROVIDER` and set its business provider back to `rocksdb`. Keep
+the same qualified data and WAL paths when switching the default BlockBasedTable
+profile. Native profiles that produce custom SST formats need separate compatibility
+validation before returning to a standard runtime. For containers, select the
+matching unsuffixed image instead; it configures the launcher and provider together.
 
 ## Implementation navigation
 

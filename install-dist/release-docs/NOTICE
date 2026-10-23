@@ -3328,3 +3328,22 @@ Arthas 4.1.5 embedded Logback 1.2.13 NOTICE
 
 Logback: the reliable, generic, fast and flexible logging framework.
 Copyright (C) 1999-2015, QOS.ch. All rights reserved.
+
+========================================================================
+
+ToplingDB JNI community runtime (optional container images)
+
+========================================================================
+
+Topling container images additionally include software developed by Topling,
+Inc., with code from RocksDB, LevelDB and the bundled public dependencies.
+
+Copyright (c) 2011-present, Facebook, Inc. All rights reserved.
+Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+Copyright (c) 2021, Topling Inc. All rights reserved.
+Copyright (c) 2020, Bytedance Inc. All rights reserved.
+
+The original component copyright notices and license texts are retained in
+META-INF/licenses/ inside topling/rocksdbjni.jar. Source revisions and the
+selected community components are recorded in META-INF/topling-build-info.txt.
+See licenses/LICENSE-toplingdb-jni-8.10.2.txt for the licensing summary and texts.

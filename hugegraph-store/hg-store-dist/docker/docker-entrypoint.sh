@@ -19,6 +19,12 @@ set -euo pipefail
 
 log() { echo "[hugegraph-store-entrypoint] $*"; }
 
+ROCKSDB_PROVIDER="${TOPLINGDB_ROCKSDB_PROVIDER:-rocksdb}"
+case "${ROCKSDB_PROVIDER}" in
+    rocksdb | topling) ;;
+    *) log "ERROR: TOPLINGDB_ROCKSDB_PROVIDER must be rocksdb or topling"; exit 2 ;;
+esac
+
 require_env() {
     local name="$1"
     if [[ -z "${!name:-}" ]]; then
@@ -55,9 +61,17 @@ require_env "HG_STORE_RAFT_ADDRESS"
 : "${HG_STORE_REST_PORT:=8520}"
 : "${HG_STORE_DATA_PATH:=/hugegraph-store/storage}"
 
+# Preserve mounted business configuration in the ordinary image. An explicitly
+# selected runtime (including the Topling image's default) configures both sides.
+ROCKSDB_JSON=""
+if [[ -n "${TOPLINGDB_ROCKSDB_PROVIDER:-}" ]]; then
+    ROCKSDB_JSON="\"rocksdb\": { \"provider\": \"${ROCKSDB_PROVIDER}\" },"
+fi
+
 # ── Build SPRING_APPLICATION_JSON ─────────────────────────────────────
 SPRING_APPLICATION_JSON="$(cat <<JSON
 {
+  ${ROCKSDB_JSON}
   "pdserver": { "address": "$(json_escape "${HG_STORE_PD_ADDRESS}")" },
   "grpc":     { "host": "$(json_escape "${HG_STORE_GRPC_HOST}")",
                 "port": "$(json_escape "${HG_STORE_GRPC_PORT}")" },
@@ -70,6 +84,7 @@ JSON
 export SPRING_APPLICATION_JSON
 
 log "effective config:"
+log "  rocksdb.provider=${ROCKSDB_PROVIDER}"
 log "  pdserver.address=${HG_STORE_PD_ADDRESS}"
 log "  grpc.host=${HG_STORE_GRPC_HOST}"
 log "  grpc.port=${HG_STORE_GRPC_PORT}"

@@ -45,6 +45,27 @@
 {{- $_ := set $component $key $storage -}}
 {{- if or (not (hasKey $storage "enabled")) (eq (get $storage "enabled" | toString) "<nil>") -}}{{- $_ := set $storage "enabled" $persistent -}}{{- end -}}
 {{- end -}}
+{{/* The runtime is an image variant. Keep business/JNI configuration in the image. */}}
+{{- $variant := get (.Values.global | default dict) "runtimeVariant" | default "standard" -}}
+{{- if not (has $variant (list "standard" "topling")) -}}
+{{- fail "global.runtimeVariant must be standard or topling" -}}
+{{- end -}}
+{{- if eq $variant "topling" -}}
+{{- range $comp := list "pd" "store" "server" -}}
+{{- $component := get $.Values $comp -}}
+{{- $image := $component.image -}}
+{{- $tag := $image.tag | default $.Chart.AppVersion -}}
+{{- if not (hasSuffix "-topling" $tag) -}}{{- $_ := set $image "tag" (printf "%s-topling" $tag) -}}{{- end -}}
+{{- $selector := get $component "nodeSelector" | default dict -}}
+{{- range $key, $required := dict "kubernetes.io/arch" "amd64" "kubernetes.io/os" "linux" -}}
+{{- if and (hasKey $selector $key) (ne (get $selector $key) $required) -}}
+{{- fail (printf "%s.nodeSelector.%s must be %s for global.runtimeVariant=topling" $comp $key $required) -}}
+{{- end -}}
+{{- $_ := set $selector $key $required -}}
+{{- end -}}
+{{- $_ := set $component "nodeSelector" $selector -}}
+{{- end -}}
+{{- end -}}
 {{- $registry := trimSuffix "/" (get (.Values.global | default dict) "imageRegistry" | default "") -}}
 {{- if contains "://" $registry -}}{{- fail "global.imageRegistry must be a registry host/path without http:// or https://" -}}{{- end -}}
 {{- if $registry -}}

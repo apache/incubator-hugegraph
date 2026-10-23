@@ -26,6 +26,12 @@ mkdir -p "${DOCKER_FOLDER}"
 
 log() { echo "[hugegraph-server-entrypoint] $*"; }
 
+ROCKSDB_PROVIDER="${TOPLINGDB_ROCKSDB_PROVIDER:-rocksdb}"
+case "${ROCKSDB_PROVIDER}" in
+    rocksdb | topling) ;;
+    *) log "ERROR: TOPLINGDB_ROCKSDB_PROVIDER must be rocksdb or topling"; exit 2 ;;
+esac
+
 source ./bin/util.sh
 record_jvm_startup_diagnostics
 run_startup_step() {
@@ -228,6 +234,17 @@ esac
 # filesystem also needs the conf files on a writable path, since set_prop in this script edits them
 # in place; the chart refuses readOnlyRootFilesystem until then.
 [[ -n "${HG_SERVER_BACKEND:-}"  ]] && set_prop "backend"  "${HG_SERVER_BACKEND}"  "${GRAPH_CONF}"
+# Apply the image's selected JNI provider to every embedded graph in the normal
+# container graphs directory, including mounted additional graph definitions.
+# Distributed graphs keep backend=hstore and do not select a local provider.
+if [[ -n "${TOPLINGDB_ROCKSDB_PROVIDER:-}" ]]; then
+    for graph_conf in ./conf/graphs/*.properties; do
+        [[ -f "${graph_conf}" ]] || continue
+        if [[ "$(get_prop_encoded backend "${graph_conf}")" == rocksdb ]]; then
+            set_prop "rocksdb.provider" "${ROCKSDB_PROVIDER}" "${graph_conf}"
+        fi
+    done
+fi
 [[ -n "${HG_SERVER_PD_PEERS:-}" ]] && set_prop "pd.peers" "${HG_SERVER_PD_PEERS}" "${GRAPH_CONF}"
 [[ -n "${HG_SERVER_USE_PD:-}" ]] && \
     set_prop "usePD" "${HG_SERVER_USE_PD}" "${REST_SERVER_CONF}"

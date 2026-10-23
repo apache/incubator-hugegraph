@@ -907,3 +907,23 @@ The text of each license is also included in licenses/LICENSE-[project].txt.
 # See licenses/LICENSE-jansi-2.4.0.txt for license details (Apache License 2.0 or LGPL 3.0+).
 
 Ivy 2.6.0 includes third-party BSD and MIT licensed code; see licenses/LICENSE-ivy-2.6.0.txt.
+
+========================================================================
+Optional ToplingDB JNI runtime for container images
+========================================================================
+The explicit Topling container variant may additionally include the community
+JNI runtime from https://github.com/hugegraph/toplingdb. It is installed as
+topling/rocksdbjni.jar, outside the standard runtime lib directory. Standard
+RocksDB distributions and images do not include this optional artifact.
+
+The RocksDB core uses its Apache 2.0 licensing option. Public Topling components
+and their bundled dependencies retain their Apache 2.0, BSD, MIT and Boost
+licenses. See licenses/LICENSE-toplingdb-jni-8.10.2.txt and the original license
+texts under META-INF/licenses/ in the JNI JAR. Its embedded
+META-INF/topling-build-info.txt identifies the source revisions and enabled
+components. The community profile disables the private ToplingZipTable builder,
+CSPP MemTable and distributed compaction components.
+
+The exact artifact URL and checksum are recorded in docker/topling-runtime.env
+in the source repository. The optional image dependency inventory is
+install-dist/scripts/dependency/optional-image-dependencies.txt.

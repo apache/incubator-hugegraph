@@ -30,6 +30,28 @@ for pair in \
         HC=$(docker image inspect --format '{{json .Config.Healthcheck}}' "$IMAGE_ID")
         [[ "$HC" != null ]] || { echo "Missing HEALTHCHECK: $dockerfile"; exit 1; }
 
+        case "$dockerfile" in
+            hugegraph-pd/Dockerfile)
+                EXPECTED_VOLUME=/hugegraph-pd/pd_data
+                ;;
+            hugegraph-store/Dockerfile)
+                EXPECTED_VOLUME=/hugegraph-store/storage
+                ;;
+            hugegraph-server/Dockerfile)
+                EXPECTED_VOLUME=/hugegraph-server/rocksdb-data
+                ;;
+            hugegraph-server/Dockerfile-hstore)
+                EXPECTED_VOLUME=
+                ;;
+        esac
+        ACTUAL_VOLUMES=$(docker image inspect --format \
+            '{{range $path, $_ := .Config.Volumes}}{{$path}}{{"\n"}}{{end}}' \
+            "$IMAGE_ID" | sed '/^$/d' | sort)
+        [[ "$ACTUAL_VOLUMES" == "$EXPECTED_VOLUME" ]] || {
+            echo "ERROR: $dockerfile declares volumes [$ACTUAL_VOLUMES]; expected [$EXPECTED_VOLUME]"
+            exit 1
+        }
+
         # Helm reuses these images for tool containers instead of pulling curlimages/curl.
         # Check the same non-root/read-only tool environment as the Server test hook.
         if [[ "$dockerfile" == hugegraph-store/* || "$dockerfile" == hugegraph-server/* ]]; then

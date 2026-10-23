@@ -19,6 +19,12 @@ set -euo pipefail
 
 log() { echo "[hugegraph-pd-entrypoint] $*"; }
 
+ROCKSDB_PROVIDER="${TOPLINGDB_ROCKSDB_PROVIDER:-rocksdb}"
+case "${ROCKSDB_PROVIDER}" in
+    rocksdb | topling) ;;
+    *) log "ERROR: TOPLINGDB_ROCKSDB_PROVIDER must be rocksdb or topling"; exit 2 ;;
+esac
+
 require_env() {
     local name="$1"
     if [[ -z "${!name:-}" ]]; then
@@ -125,10 +131,18 @@ AUTH_JSON="\"auth\": { \"secret-key\": \"$(json_escape "${HG_PD_AUTH_SECRET_KEY}
 # only way to expose another endpoint from this image.
 MANAGEMENT_JSON="\"management\": { \"endpoints\": { \"web\": { \"exposure\": { \"include\": \"$(json_escape "${HG_PD_ACTUATOR_EXPOSURE}")\" } } } },"
 
+# Preserve mounted business configuration in the ordinary image. An explicitly
+# selected runtime (including the Topling image's default) configures both sides.
+ROCKSDB_JSON=""
+if [[ -n "${TOPLINGDB_ROCKSDB_PROVIDER:-}" ]]; then
+    ROCKSDB_JSON="\"rocksdb\": { \"provider\": \"${ROCKSDB_PROVIDER}\" },"
+fi
+
 SPRING_APPLICATION_JSON="$(cat <<JSON
 {
   ${AUTH_JSON}
   ${MANAGEMENT_JSON}
+  ${ROCKSDB_JSON}
   "grpc":   { "host": "$(json_escape "${HG_PD_GRPC_HOST}")",
               "port": "$(json_escape "${HG_PD_GRPC_PORT}")" },
   "server": { "port": "$(json_escape "${HG_PD_REST_PORT}")" },
@@ -143,6 +157,7 @@ JSON
 export SPRING_APPLICATION_JSON
 
 log "effective config:"
+log "  rocksdb.provider=${ROCKSDB_PROVIDER}"
 log "  grpc.host=${HG_PD_GRPC_HOST}"
 log "  grpc.port=${HG_PD_GRPC_PORT}"
 log "  server.port=${HG_PD_REST_PORT}"
