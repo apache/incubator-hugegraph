@@ -127,7 +127,8 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
     && rm /tmp/prepare-topling-image.sh /tmp/topling-runtime.env /tmp/toplingdb.yaml
 
 EXPOSE 8080
-VOLUME /hugegraph-server
+# The default data and WAL share this directory. Keep lib/bin/conf image-owned.
+VOLUME /hugegraph-server/rocksdb-data
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -fsS http://localhost:8080/versions >/dev/null

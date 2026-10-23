@@ -122,7 +122,8 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
     && rm /tmp/prepare-topling-image.sh /tmp/topling-runtime.env /tmp/toplingdb.yaml
 
 EXPOSE 8520
-VOLUME /hugegraph-store
+# Persist data and Raft state without retaining the previous image's runtime.
+VOLUME /hugegraph-store/storage
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -fsS http://localhost:8520/v1/health >/dev/null

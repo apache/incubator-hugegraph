@@ -106,7 +106,6 @@ COPY hugegraph-server/hugegraph-dist/docker/docker-entrypoint.sh .
 RUN chmod 755 ./docker-entrypoint.sh
 
 EXPOSE 8080
-VOLUME /hugegraph-server
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -fsS http://localhost:8080/versions >/dev/null

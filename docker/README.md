@@ -435,7 +435,21 @@ Both Server images (`hugegraph/hugegraph` and `hugegraph/server`) write the Huge
 
 `/hugegraph-server/logs` holds `hugegraph-server.log`, JVM crash logs (`hs_err_pid<pid>_<host>_<launch time>.log`) and out-of-memory heap dumps (`heapdump_<host>_<launch time>/java_pid<pid>.hprof`), where `<launch time>` is the container's local time as `YYYYMMDD-HHMMSS`. Each start gets its own `heapdump_*` directory, so the Server and the JVMs it starts, such as computer jobs, write separate dumps. HotSpot names each dump and crash log after the JVM's PID, so a JVM that reuses the PID of an earlier one from the same start cannot write its dump, and its crash log replaces the earlier one's. The host name (on Kubernetes, the pod name, or `spec.hostname` when that is set) and a `-1`, `-2`, ... counter keep names from clashing; the counter also separates pods that share a host name. If the directory cannot be created, for example on a full volume, the Server still starts and dumps go to `logs/` itself as `java_pid<pid>.hprof`. That is best effort: a full volume may have no room for the dump either, and a restarted container that reuses a PID cannot write over an earlier dump with the same name. If the logs path contains a double quote or `%`, the launcher warns and heap dumps go to `logs/` itself, with no per-launch directory and no crash log default; the `JAVA_TOOL_OPTIONS` opt-out below still applies. A path that contains both quote characters gets no heap dump default at all.
 
-Both images declare `VOLUME /hugegraph-server`, so `docker restart` and a Compose recreate keep the files in that anonymous volume. `docker compose down` leaves the volume behind but the next `up` does not attach it, so the files become hard to reach and keep using disk. A later `docker compose down -v` does not remove that orphaned volume either, since it only removes anonymous volumes of the containers it removes; note the volume name with `docker inspect` before `down` and delete it with `docker volume rm <name>`, or stop with `docker compose down -v` in the first place. Avoid `docker volume prune` for this: it deletes every unused anonymous volume on the Docker host, including other projects' data. Mount a named volume or a bind mount at `/hugegraph-server/logs` to keep the files reachable. Kubernetes starts a new container on every restart and does not turn the image's `VOLUME` into a pod volume, so mount an `emptyDir` or a PersistentVolumeClaim at `/hugegraph-server/logs`. Give each pod its own volume, or a per-pod directory on a shared PVC: crash files get distinct names, but `hugegraph-server.log`, the audit log and the slow-query log have fixed names, and pods sharing them would roll them over for each other. For a per-pod directory, pass the pod name in through the Downward API and use it in `subPathExpr` (the Helm chart sets neither):
+The images persist database directories rather than the application installation. A
+`docker restart` keeps logs in the existing container; replacing the container requires
+a named volume or bind mount at `/hugegraph-server/logs` to retain them. Older images
+declared `VOLUME /hugegraph-server`, which could also retain old binaries and JNI during
+an image change. Do not mount an old installation directory over a replacement image;
+keep database and any custom configuration mounts separate. An old anonymous root volume
+can remain after its container is removed. Inspect its contents before removing that
+specific volume; it may contain logs or data from a deployment without explicit data
+mounts. Kubernetes starts a new container on every restart, so mount an `emptyDir` or a
+PersistentVolumeClaim at `/hugegraph-server/logs` to preserve logs across container
+restarts. Give each pod its own volume, or a per-pod directory on a shared PVC: crash
+files get distinct names, but `hugegraph-server.log`, the audit log and the slow-query
+log have fixed names, and pods sharing them would roll them over for each other. For a
+per-pod directory, pass the pod name in through the Downward API and use it in
+`subPathExpr` (the Helm chart sets neither):
 
 ```yaml
 env:

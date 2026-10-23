@@ -121,7 +121,8 @@ RUN --mount=type=secret,id=proxy_ca,required=false \
     && rm /tmp/prepare-topling-image.sh /tmp/topling-runtime.env /tmp/toplingdb.yaml
 
 EXPOSE 8620
-VOLUME /hugegraph-pd
+# Persist data without hiding a replacement image's binaries and native runtime.
+VOLUME /hugegraph-pd/pd_data
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=90s --retries=3 \
     CMD curl -fsS http://localhost:8620/v1/health >/dev/null
