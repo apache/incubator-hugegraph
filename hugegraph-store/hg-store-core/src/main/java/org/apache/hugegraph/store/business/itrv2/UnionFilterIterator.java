@@ -44,6 +44,7 @@ public class UnionFilterIterator<T extends Serializable> implements ScanIterator
     private final SortShuffleSerializer<T> serializer;
     private Object current;
     private boolean isProcessed = false;
+    private boolean closed;
 
     public UnionFilterIterator(ScanIterator iterator, IntersectionWrapper<T> wrapper,
                                Comparator<T> comparator, SortShuffleSerializer<T> serializer) {
@@ -74,6 +75,12 @@ public class UnionFilterIterator<T extends Serializable> implements ScanIterator
 
     @Override
     public boolean hasNext() {
+        if (this.closed) {
+            return false;
+        }
+        if (this.current != null) {
+            return true;
+        }
         while (this.iterator.hasNext()) {
             var obj = (T) this.iterator.next();
             // batch get or index lookup may generate null
@@ -131,24 +138,28 @@ public class UnionFilterIterator<T extends Serializable> implements ScanIterator
     @Override
     public boolean isValid() {
         // todo: check logic
-        return this.iterator.isValid() || hasNext();
+        return !this.closed && (this.iterator.isValid() || hasNext());
     }
 
     @Override
     public <X> X next() {
-        if (current == null) {
+        if (!hasNext() || this.current == null) {
             throw new NoSuchElementException();
         }
-
-        return (X) current;
+        X result = (X) this.current;
+        this.current = null;
+        return result;
     }
 
     @Override
     public void close() {
+        this.closed = true;
+        this.current = null;
         try (SortShuffle<T> shuffle = this.sortShuffle) {
             this.iterator.close();
         } finally {
             this.sortShuffle = null;
+            this.innerIterator = null;
             this.map.clear();
         }
     }
