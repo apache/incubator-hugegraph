@@ -54,7 +54,6 @@ import lombok.extern.slf4j.Slf4j;
 public class StoreNodeService {
 
     private static final Long STORE_HEART_BEAT_INTERVAL = 30000L;
-    private static String graphSpaceConfPrefix = "HUGEGRAPH/hg/GRAPHSPACE/CONF/";
     private List<StoreStatusListener> statusListeners;
     private List<ShardGroupStatusListener> shardGroupStatusListeners;
     private StoreInfoMeta storeInfoMeta;
@@ -1006,7 +1005,8 @@ public class StoreNodeService {
         for (Map.Entry<String, Long> item : storages.entrySet()) {
             String spaceName = item.getKey();
             long size = item.getValue();
-            String value = kvService.get(graphSpaceConfPrefix + spaceName);
+            String value = kvService.get("HUGEGRAPH/" + this.pdConfig.getServerCluster() +
+                                         "/GRAPHSPACE/CONF/" + spaceName);
             boolean limited = false;
             if (!StringUtils.isEmpty(value)) {
                 HashMap config = new Gson().fromJson(value, HashMap.class);

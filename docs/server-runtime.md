@@ -954,9 +954,14 @@ When OLTP and OLAP share a Kubernetes namespace, their quotas are added together
 separate namespaces receive the respective resource limits.
 
 The graph-count limit is enforced: after 100 graphs, creating another graph fails with
-`reach graph limit`. Storage enforcement currently reads Server configuration only under
-`HUGEGRAPH/hg/GRAPHSPACE/CONF/` (Server `cluster=hg`; its default is `hg-test`). When
-usage exceeds the configured storage limit there, PD marks the space's graphs
+`reach graph limit`. Storage enforcement reads Server configuration under
+`HUGEGRAPH/<pd.server-cluster>/GRAPHSPACE/CONF/`. Set `pd.server-cluster` in every PD
+node's `conf/application.yml` to the Server `cluster` in `rest-server.properties`.
+The PD setting defaults to `hg` for compatibility; the Server default is `hg-test`,
+so deployments using that default must set `pd.server-cluster: hg-test`. This is a
+metadata namespace, not the numeric `pd.cluster_id`. Changing it does not migrate
+existing metadata or modify the Server configuration. When usage exceeds the
+configured storage limit, PD marks the space's graphs
 `ReadOnly`; the next check restores `ReadWrite` once usage is within the limit.
 CPU and memory limits configure Kubernetes namespace quotas when `server.use_k8s=true`;
 they do not impose process limits in other deployments.
