@@ -22,13 +22,13 @@ HugeGraph 与 SeaTunnel 的拓扑独立选择；HugeGraph 的 `mode: easy/strict
 helm install hugegraph ./helm/hugegraph -n hugegraph --create-namespace \
   -f helm/hugegraph/values-single.yaml \
   -f helm/hugegraph/examples/values-seatunnel-standalone.yaml \
-  --wait --timeout 15m
+  --wait --timeout 30m
 
 # 同样的 HugeGraph 拓扑，加两个 SeaTunnel hybrid 节点
 helm install hugegraph ./helm/hugegraph -n hugegraph --create-namespace \
   -f helm/hugegraph/values-single.yaml \
   -f helm/hugegraph/examples/values-seatunnel-cluster.yaml \
-  --wait --timeout 15m
+  --wait --timeout 30m
 ```
 
 默认使用 `apache/seatunnel:3.0.0`。两种模式都开启引擎自带的 HTTP 服务和任务可视化前端，无需另部署 Web 服务或数据库：
@@ -46,14 +46,14 @@ release 为 `hugegraph` 时，资源为 `hugegraph-seatunnel` StatefulSet、同�
 ```bash
 helm upgrade hugegraph ./helm/hugegraph -n hugegraph -f my-values.yaml \
   --set seatunnel.enabled=true --set seatunnel.mode=cluster \
-  --set seatunnel.replicas=2 --wait --timeout 15m
+  --set seatunnel.replicas=2 --wait --timeout 30m
 ```
 
 切回单机设置 `seatunnel.mode=standalone`。两种模式使用同一个 StatefulSet，但副本和引擎配置会变化；不承诺无中断切换，也不会自动恢复或重新提交作业。设置 `seatunnel.enabled=false` 移除本 release 的 SeaTunnel，已经写入 HugeGraph 的数据保留。
 
 ## 镜像、凭据与原生配置
 
-优先复用官方镜像或已有镜像，需确认其包含版本匹配的 HugeGraph 连接器及依赖。镜像通过 `seatunnel.image.repository/tag/pullPolicy` 选择，继承 HugeGraph 的 `global.imageRegistry` 和 `imagePullSecrets`；Helm 不在启动时下载插件。
+本轮已直接核实官方 `apache/seatunnel:3.0.0` 镜像自带 HugeGraph、FakeSource、Console 连接器和内置 UI，直接复用即可，无需维护派生镜像。更换版本或自定义镜像时再核对插件与依赖。镜像通过 `seatunnel.image.repository/tag/pullPolicy` 选择，继承 HugeGraph 的 `global.imageRegistry` 和 `imagePullSecrets`；Helm 不在启动时下载插件。官方镜像包含大量连接器，本次 amd64 镜像压缩后约 3.7GB；首次拉取较慢时可延长安装 timeout，或预拉取、镜像到内部仓库。
 
 凭据使用原生 Kubernetes Secret 引用。例如，本地验证可直接引用默认 Helm 管理员 Secret，无需复制密码：
 
@@ -141,7 +141,7 @@ for clone_job in person company works_at knows; do
 done
 ```
 
-作业使用 `ERROR_WHEN_SCHEMA_NOT_EXIST`，复用已经复制的 Schema；边依赖先前写入的端点顶点。这组映射覆盖 [person](../examples/seatunnel/clone/person.conf)、[company](../examples/seatunnel/clone/company.conf)、[works_at](../examples/seatunnel/clone/works_at.conf) 和 [knows](../examples/seatunnel/clone/knows.conf)。复制其他图时需按实际标签、属性和 ID 策略调整映射，不会自动枚举全图并提交迁移作业。
+作业使用 `ERROR_WHEN_SCHEMA_NOT_EXIST`，复用已经复制的 Schema；边依赖先前写入的端点顶点。这组映射覆盖 [person](../examples/seatunnel/clone/person.conf)、[company](../examples/seatunnel/clone/company.conf)、[works_at](../examples/seatunnel/clone/works_at.conf) 和 [knows](../examples/seatunnel/clone/knows.conf)。官方 Sink 要求显式提供 `mappings` 或 `schema_config`。复制其他图时需按实际标签、属性和 ID 策略调整原生映射，不会自动枚举全图并提交迁移作业。
 
 这组示例验证 `PRIMARY_KEY` 和 `CUSTOMIZE_NUMBER` 顶点 ID 策略。现有连接器对 `AUTOMATIC` 顶点会生成新 ID，不能用这组映射直接无损复制其边端点；迁移前先核对源图的 ID 策略。
 
@@ -149,4 +149,39 @@ done
 
 ## 本轮实测记录
 
-待填写：使用上述原生 hybrid 实现，在 HugeGraph Helm 1 PD + 1 Store + 1 Server/HStore 环境验证单副本、多副本、内置前端，并完成新环境 A → B 的 Schema、1000 个点与 2400 条边复制。旧版分离 master/worker 的实测不作为本实现的验证结果。
+2026 年 10 月 23–24 日（Asia/Singapore）完成以下验证，均使用本页的一套原生 hybrid StatefulSet。源、目标是两个独立的 Helm 环境，各有 **1 PD + 1 Store + 1 Server，后端为 HStore**，分别使用自己的 PVC 和认证。源 `graph_a` 与目标 `graph_b` 不共享后端；另在目标环境的 `graph_a` 测试十条数据直接导入。
+
+SeaTunnel 使用原始 `apache/seatunnel:3.0.0` 镜像。实际校验了 OCI 清单、配置及全部九层的大小和 SHA-256，并在容器中确认 HugeGraph、FakeSource、Console 连接器及内置 UI 均存在；无需自建镜像。镜像索引 digest 为 `sha256:914fcf37b2d5acdf9f95f7dbbd7d4c62d150fcbc5ff3e5f59957d65840fea8dd`，实际运行 amd64 清单 digest 为 `sha256:dd8f357dfed2192a68184aeac41507e5529eb06c208b12aae4bf6466ed0a0bb0`。
+
+测试环境资源有限，kind 节点使用 FUSE overlay 承载官方镜像原始层；PD、Store、Server 则复用此前从源码构建的缓存运行镜像。以上均为测试基础设施设置，不是 Chart 的部署依赖。HugeGraph 测试运行产物的源码版本为 `f60ad3e3bfc71d4404956fd2dbfb62c7bc002f13`；本轮同时对最新 `master` 基础上的改动完成了编译检查。
+
+| 验证项 | 实际结果 |
+| --- | --- |
+| 直接导入 | 原始 `hugegraph-sink.conf` 未修改，作业 `1166045557131575297` 为 `FINISHED`，读 10、写 10、失败 0；目标图查询及逐条内容核对均为 10 条 |
+| Schema 复制 | 空目标先复制 10 个属性键、2 个顶点标签、2 个边标签、3 个索引；保留原 Schema ID，逐项核对类型、基数、ID 策略、nullable、索引和自定义元数据 |
+| 单机复制 | 00:08:49 完成，1 个 hybrid 节点；4 个作业全部 `FINISHED`，1000 个顶点、2400 条边的 ID、全部属性和边端点与源图相同 |
+| 集群复制 | 00:18:51 完成，2 个 hybrid 节点；人为扰动目标一个属性后重新运行 4 个作业，目标恢复到与源图完全一致；每个 Pod 在作业前后均报告 Workers=2 |
+| 切回单机 | 00:21:16 完成只读复查，Workers=1，运行中作业为 0；全部 Schema、1000 个顶点、2400 条边及另图的 10 条导入数据保持一致 |
+| 升级影响 | 单机 → 集群 → 单机使用同一个 StatefulSet；两环境原有 6 个 HugeGraph Pod UID、4 个 PVC、6 个认证 Secret 均未变化，Pod 全部 Ready 且重启为 0；匿名访问 401、有效账号 200 |
+| 内置前端 | 真实 Chromium（Asia/Singapore）验证两种模式的 Overview、作业列表和 DAG：Workers 分别为 1、2；选中作业的 DAG 均为 2 节点、1 条连接，显示读写各 800；浏览器 JS、关键 API、静态资源错误均为 0 |
+
+复制作业的逐项结果如下；两种模式每个作业的失败数均为 0。
+
+| 标签 | 类型 | 读取 / 写入 | 单机作业 ID | 集群作业 ID |
+| --- | --- | --- | --- | --- |
+| person | PRIMARY_KEY 顶点 | 800 / 800 | 1166045485111181313 | 1166048035369648130 |
+| company | CUSTOMIZE_NUMBER 顶点 | 200 / 200 | 1166045504388202497 | 1166048053988163586 |
+| works_at | 边 | 800 / 800 | 1166045519504474113 | 1166048070853459969 |
+| knows | MULTIPLE 边 | 1600 / 1600 | 1166045539670687745 | 1166048087110582273 |
+
+验收使用全量数据比较，单机、集群和切回单机后的 Schema、顶点、边三组规范化哈希分别完全一致。Schema 比较仅忽略元素顶层的运行状态及系统 `user_data.~create_time`，保留业务自定义的 `status/create_time` 元数据。另验证了 SET 内容、LIST 顺序和重复元素、可空属性、自定义元数据、同端点且 sort key 为 2020/2021 的两条多重边；三个索引均为 `CREATED`，范围查询 `age >= 80` 返回 88 条，二级索引查询 `company_123` 返回 1 条，源、目标查询结果相同。
+
+集群测试曾发现两个 Pod 虽然 Ready，却各自形成单节点集群。原因是 Hazelcast DNS 发现未指定端口时使用 5701，而引擎监听 5801；模板已明确配置 `service-port: 5801`。修复后逐 Pod 确认 Workers=2、成员数为 2，持续观察一分钟，再重新执行上述集群作业和前端验证。仅 Pod Ready 不作为集群组建成功的依据。
+
+本轮还通过了 22 项 Python Helm 回归、309 项 Helm 单元测试（36 个 suite、4 个快照）、两种模式的 strict Helm lint，以及目标环境的 `helm test --logs`。`mvn editorconfig:format` 和 `mvn clean compile -Dmaven.javadoc.skip=true` 的 38 个模块均通过。
+
+本次范围与已知限制：
+
+- 已覆盖 `PRIMARY_KEY`、`CUSTOMIZE_NUMBER`，暂不覆盖 `AUTOMATIC` 顶点的无损复制；后者需要解决新旧顶点 ID 与边端点的对应关系。
+- 官方 3.0.0 UI 的 Duration 显示存在上游问题：无时区时间字符串在新加坡浏览器中会产生 8 小时偏差，且已完成作业的显示时长仍随当前时间增长。以 CLI/REST 的完成状态及开始、结束时间核对实际结果；本次未修改上游 UI 或硬编码时区。
+- 测试覆盖停止作业后的模式升级和数据保留，未验证运行中作业不中断切换、生产 HA、持久化恢复或 CNI 的实际网络隔离。默认临时 checkpoint 目录不能据此视为持久化恢复方案。
