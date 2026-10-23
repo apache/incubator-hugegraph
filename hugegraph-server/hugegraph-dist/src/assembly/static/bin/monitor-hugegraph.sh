@@ -33,6 +33,8 @@ TOP="$(cd "$BIN"/../ && pwd)"
 CONF="${CONF_OVERRIDE:-$TOP/conf}"
 LOGS="${LOGS_OVERRIDE:-$TOP/logs}"
 
+ensure_file_readable "$CONF/rest-server.properties" "REST server config" || exit 1
+
 SERVER_URL=`read_property "$CONF/rest-server.properties" "restserver.url"`
 DETECT_URL="$SERVER_URL/versions"
 PROC_NAME="HugeGraphServer"
@@ -40,9 +42,7 @@ PROC_NAME="HugeGraphServer"
 LOG_DIR="$LOGS"
 MONITOR_LOG="$LOG_DIR/monitor.log"
 
-if [ ! -d "$LOG_DIR" ]; then
-    mkdir -p "$LOG_DIR"
-fi
+ensure_path_writable "$LOG_DIR"
 
 function record_monitor_log() {
     echo `date '+%Y-%m-%d %H:%M:%S'`, $1 >> "$MONITOR_LOG"

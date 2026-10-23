@@ -147,15 +147,18 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     fi
     JAVA_OPTIONS=("-Xms${MIN_MEM}m" "-Xmx${XMX}m")
 
-    # Split user-supplied options on whitespace (legacy behaviour)
+    # Split user-supplied options on whitespace (legacy behaviour).
+    # Use NUL (not newline) as the read delimiter so multi-line values
+    # (e.g. Helm javaOpts/Compose `|` blocks) are not silently truncated
+    # at the first line.
     USER_OPTIONS=()
-    read -r -a USER_OPTIONS <<< "${USER_OPTION}"
+    read -r -d '' -a USER_OPTIONS <<< "${USER_OPTION}"$'\0' || true
     JAVA_OPTIONS+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
 
     # Rolling out detailed GC logs
     #JAVA_OPTIONS+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
 else
-    read -r -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"
+    read -r -d '' -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
 fi
 
 # Keep JVM/caller GC selection by default; explicitly select G1 when requested.
@@ -214,7 +217,7 @@ EOF
         # rejection into the server log (see hugegraph.bootstrap.error.log below).
         SECURITY_PROPERTIES_OVERRIDDEN="false"
         JAVA_OPTIONS_ENV_WORDS=()
-        read -r -a JAVA_OPTIONS_ENV_WORDS <<< "${_JAVA_OPTIONS:-}"
+        read -r -d '' -a JAVA_OPTIONS_ENV_WORDS <<< "${_JAVA_OPTIONS:-}"$'\0' || true
         for OPTION in ${JAVA_OPTIONS[@]+"${JAVA_OPTIONS[@]}"} \
                       ${JAVA_OPTIONS_ENV_WORDS[@]+"${JAVA_OPTIONS_ENV_WORDS[@]}"}; do
             case "${OPTION}" in

@@ -95,9 +95,12 @@ function shell_quote() {
 #   crlf      : reject CR/LF. Call on the RAW value (e.g. $OPTARG) BEFORE
 #               canonicalize_dir/canonicalize_file.
 #   cron      : crlf + reject '%'.
-#   classpath : crlf + reject ':'. For a directory whose contents are joined
-#               into a ':'-separated CLASSPATH (the plugins dir), where a ':'
-#               in the path itself would split one entry into two bogus ones.
+#   classpath : crlf + reject ':' and ';'. For a directory whose contents are
+#               joined into a ':'-separated CLASSPATH (the plugins dir), where
+#               a ':' in the path itself would split one entry into two bogus
+#               ones. On Cygwin, a classpath converted with 'cygpath -p -w' is
+#               re-delimited on ';' instead, so a ';' in the path would do the
+#               same splitting there.
 function reject_unsafe_path() {
     case "$1" in
         *[$'\n\r']*)
@@ -116,6 +119,9 @@ function reject_unsafe_path() {
             case "$1" in
                 *:*)
                     echo "ERROR: $2 must not contain ':' (CLASSPATH separator)" >&2
+                    return 1 ;;
+                *';'*)
+                    echo "ERROR: $2 must not contain ';' (CLASSPATH separator on Cygwin)" >&2
                     return 1 ;;
             esac ;;
     esac

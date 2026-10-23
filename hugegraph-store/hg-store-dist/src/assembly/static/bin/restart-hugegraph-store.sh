@@ -28,6 +28,7 @@ function abs_path() {
 }
 
 BIN=$(abs_path)
+TOP="$(cd "$BIN"/../ && pwd)"
 
 DAEMON_ARG=""
 CONF_ARG=""
@@ -63,6 +64,28 @@ reject_unsafe_path "$CONF_ARG" "-c conf dir" crlf || exit 1
 reject_unsafe_path "$LOGS_ARG" "-l logs dir" crlf || exit 1
 # The plugins dir is joined into ':'-separated classpath/agent settings
 reject_unsafe_path "$PLUGINS_ARG" "-o plugins dir" classpath || exit 1
+
+# The checks above only reject unsafe characters; they don't prove -c/-l/-o
+# are actually usable. Resolve them exactly as start-hugegraph-store.sh will
+# and run its writability/readability guards here too, so a bad
+# override is caught while the current Store is still up and serving traffic
+RESTART_CONF_OVERRIDE="$(canonicalize_dir "$CONF_ARG" nocreate)" || exit 1
+RESTART_LOGS_OVERRIDE="$(canonicalize_dir "$LOGS_ARG")" || exit 1
+RESTART_PLUGINS_OVERRIDE="$(canonicalize_dir "$PLUGINS_ARG")" || exit 1
+RESTART_PID_FILE_OVERRIDE="$(canonicalize_file "$PID_ARG")" || exit 1
+
+RESTART_CONF="${RESTART_CONF_OVERRIDE:-$TOP/conf}"
+RESTART_LOGS="${RESTART_LOGS_OVERRIDE:-$TOP/logs}"
+RESTART_PLUGINS="${RESTART_PLUGINS_OVERRIDE:-$TOP/plugins}"
+RESTART_PID_FILE="${RESTART_PID_FILE_OVERRIDE:-$BIN/pid}"
+
+ensure_path_writable "$RESTART_LOGS"
+ensure_path_writable "$RESTART_PLUGINS"
+ensure_path_writable "$(dirname "$RESTART_PID_FILE")"
+
+if [ -n "$RESTART_CONF_OVERRIDE" ]; then
+    ensure_file_readable "${RESTART_CONF}/application.yml" "Store config" || exit 1
+fi
 
 # stop-hugegraph-store.sh only understands -i (the pid file).Forward the -i flag to stop script
 STOP_ARGS=()

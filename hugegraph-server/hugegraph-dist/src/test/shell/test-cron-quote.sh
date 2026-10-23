@@ -172,6 +172,7 @@ expect_rc "cron: apostrophe/space accepted"      0 "/data/team's logs" L cron
 expect_rc "cron: empty accepted"                 0 "" L cron
 expect_rc "classpath: plain path accepted"       0 "/opt/x" L classpath
 expect_rc "classpath: ':' rejected"              1 "/data/a:b/plugins" L classpath
+expect_rc "classpath: ';' rejected (Cygwin)"     1 "/data/a;b/plugins" L classpath
 expect_rc "classpath: LF rejected"               1 $'/opt/x\ny' L classpath
 expect_rc "classpath: '%' accepted (not cron)"   0 "/opt/100%/x" L classpath
 expect_rc "classpath: space/apostrophe accepted" 0 "/data/team's plugins" L classpath

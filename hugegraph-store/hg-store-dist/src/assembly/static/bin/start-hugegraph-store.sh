@@ -169,6 +169,8 @@ if [ -n "$CONF_OVERRIDE" ]; then
     reject_relative_conf_path "$VALUE" "data-path" "${CONF}/application.yml" || exit 1
 fi
 
+export CONF_OVERRIDE LOGS_OVERRIDE PLUGINS_OVERRIDE PID_FILE_OVERRIDE
+
 # The maximum and minimum heap memory that service can use (for production env set it 36GB)
 MAX_MEM=$((2 * 1024))
 MIN_MEM=$((1 * 512))
@@ -211,15 +213,18 @@ if [ "$JAVA_OPTIONS_ENV" = "" ]; then
     JAVA_OPTIONS=("-Xms${MIN_MEM}m" "-Xmx${XMX}m" "-XX:MetaspaceSize=256M"
                   "-XX:+HeapDumpOnOutOfMemoryError" "-XX:HeapDumpPath=${LOGS}")
 
-    # Split user-supplied options on whitespace (legacy behaviour)
+    # Split user-supplied options on whitespace (legacy behaviour).
+    # Use NUL (not newline) as the read delimiter so multi-line values
+    # (e.g. Helm javaOpts/Compose `|` blocks) are not silently truncated
+    # at the first line.
     USER_OPTIONS=()
-    read -r -a USER_OPTIONS <<< "${USER_OPTION}"
+    read -r -d '' -a USER_OPTIONS <<< "${USER_OPTION}"$'\0' || true
     JAVA_OPTIONS+=(${USER_OPTIONS[@]+"${USER_OPTIONS[@]}"})
 
     # Rolling out detailed GC logs
     JAVA_OPTIONS+=("-Xlog:gc=info:file=${LOGS}/gc.log:time,uptime,level,tags:filecount=3,filesize=100m")
 else
-    read -r -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"
+    read -r -d '' -a JAVA_OPTIONS <<< "${JAVA_OPTIONS_ENV}"$'\0' || true
 fi
 
 # Keep JVM/caller GC selection by default; explicitly select G1 when requested.
