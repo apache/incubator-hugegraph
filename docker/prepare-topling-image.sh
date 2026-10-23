@@ -34,11 +34,11 @@ fi
 }
 export TOPLING_JNI_SHA256
 
-if [[ -r /run/secrets/topling_jni ]]; then
-    export TOPLING_JNI_JAR=/run/secrets/topling_jni
+if [[ -r /run/topling-jni/rocksdbjni.jar ]]; then
+    export TOPLING_JNI_JAR=/run/topling-jni/rocksdbjni.jar
 else
     [[ "${TOPLING_JNI_URL:-}" == https://* ]] || {
-        echo 'Error: Topling builds require an HTTPS TOPLING_JNI_URL or a topling_jni build secret' >&2
+        echo 'Error: Topling builds require an HTTPS TOPLING_JNI_URL or a topling-jni build context containing rocksdbjni.jar' >&2
         exit 1
     }
     download_dir=$(mktemp -d)

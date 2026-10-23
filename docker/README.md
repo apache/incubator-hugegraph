@@ -328,18 +328,20 @@ project volumes separate from a RocksDB source deployment. For direct Docker and
 Bake builds, use `--build-arg RUNTIME_VARIANT=topling` or `RUNTIME_VARIANT=topling`
 respectively, together with the same JNI URL and checksum build inputs.
 
-For a verified local JNI JAR, supply a BuildKit secret instead of a download URL:
+For a verified local JNI JAR, put it in a directory as `rocksdbjni.jar` and supply
+that directory as a named build context instead of a download URL:
 
 ```bash
 docker buildx build --platform linux/amd64 -f ../hugegraph-server/Dockerfile \
   --build-arg RUNTIME_VARIANT=topling \
   --build-arg TOPLING_JNI_SHA256='<trusted-64-character-sha256>' \
-  --secret id=topling_jni,src=/absolute/path/rocksdbjni.jar \
+  --build-context topling-jni=/absolute/path/to/jni-directory \
   -t hugegraph/hugegraph:local-topling --load ..
 ```
 
-Run this example from the `docker` directory. The checksum and normal native
-capability probe still apply. Networks with a private CA can additionally supply
+Run this example from the `docker` directory. Bake accepts the same directory
+with `--set '*.contexts.topling-jni=/absolute/path/to/jni-directory'`. The checksum
+and normal native capability probe still apply. Networks with a private CA can additionally supply
 `--secret id=proxy_ca,src=/absolute/path/ca.pem`; the CA is mounted only while
 Maven, package installation and artifact download run.
 

@@ -49,6 +49,10 @@ RUN --mount=type=cache,id=hugegraph-maven-${SOURCE_REVISION},target=/root/.m2,sh
     rm -f /tmp/hugegraph-build-cacerts; \
     rm ./hugegraph-server/*.tar.gz ./hugegraph-pd/*.tar.gz ./hugegraph-store/*.tar.gz
 
+# Optional local JNI directory: --build-context topling-jni=/path/to/directory.
+# An empty default stage keeps ordinary and URL-based builds self-contained.
+FROM scratch AS topling-jni
+
 # 2nd stage: runtime env
 # Note: ZGC (The Z Garbage Collector) is only supported on ARM-Mac with java > 13
 FROM eclipse-temurin:17-jdk-jammy AS standard-base
@@ -110,7 +114,7 @@ ARG TOPLING_JNI_URL
 ARG TOPLING_JNI_SHA256
 COPY docker/prepare-topling-image.sh docker/topling-runtime.env docker/toplingdb.yaml /tmp/
 RUN --mount=type=secret,id=proxy_ca,required=false \
-    --mount=type=secret,id=topling_jni,required=false \
+    --mount=type=bind,from=topling-jni,target=/run/topling-jni \
     if [ "$RUNTIME_VARIANT" = topling ]; then \
         if [ -f /run/secrets/proxy_ca ]; then export CURL_CA_BUNDLE=/run/secrets/proxy_ca; fi; \
         bash /tmp/prepare-topling-image.sh; \
