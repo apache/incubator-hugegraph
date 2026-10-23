@@ -371,27 +371,131 @@ function check_port() {
     return 0
 }
 
+# Emit $1 as ONE complete POSIX shell word, INCLUDING the surrounding quotes.
+# Callers should NOT add another pair of quotes:
+#     /data/team's-logs  ->  '/data/team'\''s-logs'
+#
+function shell_quote() {
+    local sq="'" repl="'\\''"
+    printf "'%s'" "${1//$sq/$repl}"
+}
+
+# Validate a path-like value. $1=value  $2=label for the error  $3=crlf|cron|classpath
+#   crlf      : reject CR/LF. Call on the RAW value (e.g. $OPTARG) BEFORE
+#               canonicalize_dir/canonicalize_file.
+#   cron      : crlf + reject '%'.
+#   classpath : crlf + reject ':' and ';'. For a directory whose contents are
+#               joined into a ':'-separated CLASSPATH (the plugins dir), where
+#               a ':' in the path itself would split one entry into two bogus
+#               ones. On Cygwin, hugegraph-server.sh converts that classpath
+#               with 'cygpath -p -w', which re-delimits it on ';' instead, so a
+#               ';' in the path would do the same splitting there.
+function reject_unsafe_path() {
+    case "$1" in
+        *[$'\n\r']*)
+            echo "ERROR: $2 must not contain CR/LF characters" >&2
+            return 1 ;;
+    esac
+
+    case "$3" in
+        cron)
+            case "$1" in
+                *%*)
+                    echo "ERROR: $2 must not contain '%' (reserved by cron)" >&2
+                    return 1 ;;
+            esac ;;
+        classpath)
+            case "$1" in
+                *:*)
+                    echo "ERROR: $2 must not contain ':' (CLASSPATH separator)" >&2
+                    return 1 ;;
+                *';'*)
+                    echo "ERROR: $2 must not contain ';' (CLASSPATH separator on Cygwin)" >&2
+                    return 1 ;;
+            esac ;;
+    esac
+    return 0
+}
+
+# Validate (cron rules) then quote. $1=value  $2=label. Prints the quoted word.
+function cron_quote() {
+    reject_unsafe_path "$1" "$2" cron || return 1
+    shell_quote "$1"
+}
+
+# Fail fast when a required config file is missing or unreadable.
+# read_property() returns an empty string in that case, which otherwise looks
+# exactly like "the property is not set" and lets startup continue with silent
+# defaults.
+#   $1 = file   $2 = for error message
+function ensure_file_readable() {
+    local file="$1" description="$2"
+    if [ ! -f "$file" ]; then
+        echo "ERROR: missing $description: '$file'" >&2
+        if [ -n "${CONF_OVERRIDE:-}" ]; then
+            echo "       The conf dir passed with -c must contain the same files" >&2
+            echo "       as the packaged conf directory." >&2
+        fi
+        return 1
+    fi
+    if [ ! -r "$file" ]; then
+        echo "ERROR: unreadable $description: '$file'" >&2
+        echo "       Check the file's ownership and permissions." >&2
+        return 1
+    fi
+    return 0
+}
+
+# A relative path inside a config file is resolved by the JVM against the
+# working directory, which the start scripts set to $TOP -- not against the
+# directory the config file itself lives in. So when -c points at an external
+# conf dir, a value such as 'graphs=./conf/graphs' still loads
+# $TOP/conf/graphs and the operator's copy is ignored with no message at all.
+# Refuse to start in such case when -c is set and say exactly what to change.
+#   $1 = value read from the config   $2 = property name   $3 = config file
+function reject_relative_conf_path() {
+    local value="$1" property="$2" file="$3"
+    # Only an overridden conf dir can disagree with the working directory.
+    [ -z "${CONF_OVERRIDE:-}" ] && return 0
+    [ -z "$value" ] && return 0
+    case "$value" in
+        /*) return 0 ;;
+    esac
+    # Build the suggestion: the stock values are written relative to $TOP (e.g.
+    # './conf/graphs'), while $CONF_OVERRIDE already IS the conf dir, so drop a
+    # leading './' and a leading 'conf/' to avoid suggesting '.../conf/conf/...'.
+    local suggestion="${value#./}"
+    suggestion="${suggestion#conf/}"
+    echo "ERROR: '$property' is the relative path '$value' in $file." >&2
+    echo "       Relative paths resolve against the working directory, so with" >&2
+    echo "       -c '$CONF_OVERRIDE' this would silently keep using the packaged" >&2
+    echo "       directory instead of your copy. Set '$property' to an absolute" >&2
+    echo "       path (for example '$CONF_OVERRIDE/$suggestion')." >&2
+    return 1
+}
+
 function crontab_append() {
     local job="$1"
-    crontab -l | grep -F "$job" >/dev/null 2>&1
+    crontab -l 2>/dev/null | grep -F -- "$job" >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         return 1
     fi
-    (crontab -l ; echo "$job") | crontab -
+    # printf, not echo: echo may interpret backslashes or swallow a leading -n/-e
+    { crontab -l 2>/dev/null; printf '%s\n' "$job"; } | crontab -
 }
 
 function crontab_remove() {
     local job="$1"
     # check exist before remove
-    crontab -l | grep -F "$job" >/dev/null 2>&1
-    if [ $? -eq 1 ]; then
+    crontab -l 2>/dev/null | grep -F -- "$job" >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
         return 0
     fi
 
-    crontab -l | grep -Fv "$job"  | crontab -
+    crontab -l 2>/dev/null | grep -Fv -- "$job" | crontab -
 
     # Check exist after remove
-    crontab -l | grep -F "$job" >/dev/null 2>&1
+    crontab -l 2>/dev/null | grep -F -- "$job" >/dev/null 2>&1
     if [ $? -eq 0 ]; then
         return 1
     else
@@ -720,6 +824,59 @@ function ensure_path_writable() {
     fi
 }
 
+# Canonicalize a (possibly relative) directory override into an absolute path.
+#   $1 = path, $2 = mode (optional)
+#   default    : create the directory if missing. -l and -o name directories the
+#                scripts write into, so creating them is the expected setup step.
+#   "nocreate" : resolve only. The directory is never created, and a missing one
+#                is an error. Used for -c: a conf dir is only ever READ, so a
+#                typo such as '-c /dat/conf' must fail here naming the wrong
+#                directory, instead of silently creating an empty one and
+#                failing later on a file missing inside it.
+function canonicalize_dir() {
+    local path="$1"
+    local mode="${2:-create}"
+    [ -z "$path" ] && return 0
+    if [ "$mode" != "nocreate" ]; then
+        mkdir -p "$path" 2>/dev/null
+    elif [ ! -d "$path" ]; then
+        echo "Error: no such directory '$path'" >&2
+        exit 1
+    fi
+    (cd "$path" 2>/dev/null && pwd) || {
+        echo "Error: cannot resolve path '$path'" >&2
+        exit 1
+    }
+}
+
+# Canonicalize a (possibly relative) file override (e.g. the pid file) into an
+# absolute path.
+#   $1 = path, $2 = mode (optional)
+#   default    : create the parent directory if missing (start/restart scripts,
+#                which have to be able to write the pid file afterwards).
+#   "nocreate" : resolve only. The parent is never created, and a missing one
+#                is an error. The stop scripts only ever READ the pid file, so
+#                they must not leave an empty directory tree behind for a typo
+#                such as '-i /var/run/hugegraf/server.pid'.
+function canonicalize_file() {
+    local path="$1"
+    local mode="${2:-create}"
+    [ -z "$path" ] && return 0
+    local dir file abs_dir
+    dir="$(dirname "$path")"
+    file="$(basename "$path")"
+    # In "nocreate" mode the parent is never created; a missing one then makes
+    # the cd below fail, which reports the error and exits.
+    if [ "$mode" != "nocreate" ]; then
+        mkdir -p "$dir" 2>/dev/null
+    fi
+    abs_dir="$(cd "$dir" 2>/dev/null && pwd)" || {
+        echo "Error: cannot resolve path '$path'" >&2
+        exit 1
+    }
+    echo "$abs_dir/$file"
+}
+
 function get_ip() {
     local os=$(uname)
     local loopback="127.0.0.1"
@@ -892,7 +1049,8 @@ function kill_process_and_wait() {
 
 function exit_with_usage_help(){
     echo "USAGE: $0 [-d true|false] [-g g1|G1|zgc|ZGC] [-m true|false] [-p true|false]" \
-         "[-s true|false] [-j java_options] [-t timeout] [-y true|false]"
+         "[-s true|false] [-j java_options] [-t timeout] [-y true|false]" \
+         "[-c conf_dir] [-l logs_dir] [-o plugins_dir] [-i pid_file]"
     echo "Without -g, JVM/caller collector selection applies. -j applies when JAVA_OPTIONS is empty."
     echo "Default/G1 tuning precedes caller options, so caller tuning values win."
     echo "Do not combine -g with a different collector in JAVA_OPTIONS or -j."

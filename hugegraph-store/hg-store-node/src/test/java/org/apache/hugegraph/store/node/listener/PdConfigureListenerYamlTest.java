@@ -88,6 +88,50 @@ public class PdConfigureListenerYamlTest {
         }
     }
 
+    @Test
+    public void testResolveConfigFilePathFollowsSpringConfigLocation() throws Exception {
+        String original = System.getProperty("spring.config.location");
+        try {
+            System.setProperty("spring.config.location",
+                                "/etc/hugegraph-store/application.yml");
+            String path = resolveConfigFilePath();
+            Assertions.assertEquals(
+                    new java.io.File("/etc/hugegraph-store", "application-pd.yml").getPath(),
+                    path);
+        } finally {
+            restoreProperty("spring.config.location", original);
+        }
+    }
+
+    @Test
+    public void testResolveConfigFilePathFallsBackToUserDirConfWhenUnset() throws Exception {
+        String original = System.getProperty("spring.config.location");
+        try {
+            System.clearProperty("spring.config.location");
+            String path = resolveConfigFilePath();
+            String expected = System.getProperty("user.dir") + System.getProperty("file.separator")
+                               + "conf" + System.getProperty("file.separator")
+                               + "application-pd.yml";
+            Assertions.assertEquals(expected, path);
+        } finally {
+            restoreProperty("spring.config.location", original);
+        }
+    }
+
+    private static void restoreProperty(String key, String original) {
+        if (original == null) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, original);
+        }
+    }
+
+    private static String resolveConfigFilePath() throws Exception {
+        Method method = PdConfigureListener.class.getDeclaredMethod("resolveConfigFilePath");
+        method.setAccessible(true);
+        return (String) method.invoke(null);
+    }
+
     @Configuration(proxyBeanMethods = false)
     public static class YamlApplication {
     }

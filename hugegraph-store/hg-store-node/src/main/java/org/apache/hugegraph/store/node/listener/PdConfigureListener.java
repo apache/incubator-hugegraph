@@ -57,10 +57,31 @@ public class PdConfigureListener implements
     private static final String PD_CONFIG_FILE_NAME = "application-pd.yml";
     private final String workDir = System.getProperty("user.dir");
     private final String fileSeparator = System.getProperty("file.separator");
-    private final String configFilePath =
-            workDir + fileSeparator + "conf" + fileSeparator + PD_CONFIG_FILE_NAME;
+    // start-hugegraph-store.sh always passes
+    // -Dspring.config.location=${CONF}/application.yml, where CONF already
+    // resolves the -c override (or $TOP/conf by default). Deriving the conf
+    // dir from that property (instead of user.dir, which is always $TOP
+    // because the script does `cd "${TOP}"` before exec'ing java) keeps this
+    // listener's read/write target in sync with the conf dir the rest of the
+    // process actually uses, including after a -c-overridden restart.
+    private final String configFilePath = resolveConfigFilePath();
     private final String restartShellPath = workDir + fileSeparator + "bin" + fileSeparator
                                             + "restart-hugegraph-store.sh";
+
+    private static String resolveConfigFilePath() {
+        String springConfigLocation = System.getProperty("spring.config.location");
+        if (!StringUtils.isEmpty(springConfigLocation)) {
+            File appYml = new File(springConfigLocation);
+            File confDir = appYml.getParentFile();
+            if (confDir != null) {
+                return new File(confDir, PD_CONFIG_FILE_NAME).getPath();
+            }
+        }
+        // Fallback for contexts where spring.config.location is not set: preserve the historical $TOP/conf location.
+        String workDir = System.getProperty("user.dir");
+        String fileSeparator = System.getProperty("file.separator");
+        return workDir + fileSeparator + "conf" + fileSeparator + PD_CONFIG_FILE_NAME;
+    }
     private ConfigurableApplicationContext context;
     private File pdConfFile;
     // private String restartPath = workDir + fileSeparator + "lib" + fileSeparator;
