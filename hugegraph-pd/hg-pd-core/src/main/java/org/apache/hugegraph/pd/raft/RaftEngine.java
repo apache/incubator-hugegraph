@@ -463,6 +463,10 @@ public class RaftEngine {
         this.stateMachine.addTaskHandler(handler);
     }
 
+    public void removeTaskHandler(RaftTaskHandler handler) {
+        this.stateMachine.removeTaskHandler(handler);
+    }
+
     public PDConfig.Raft getConfig() {
         return this.config;
     }
