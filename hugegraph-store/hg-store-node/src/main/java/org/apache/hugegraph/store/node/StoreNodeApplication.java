@@ -19,6 +19,7 @@ package org.apache.hugegraph.store.node;
 
 import org.apache.hugegraph.store.node.listener.PdConfigureListener;
 import org.apache.hugegraph.util.RocksDBRuntime;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -32,7 +33,14 @@ import com.alipay.remoting.util.StringUtils;
 public class StoreNodeApplication {
 
     public static void main(String[] args) {
-        start(args);
+        try {
+            start(args);
+        } catch (RuntimeException e) {
+            LoggerFactory.getLogger(StoreNodeApplication.class)
+                         .error("HugeGraph Store startup failed; exiting with status 1", e);
+            // An incomplete Spring bootstrap can leave non-daemon native/Raft executors alive.
+            System.exit(1);
+        }
     }
 
     public static void start() {

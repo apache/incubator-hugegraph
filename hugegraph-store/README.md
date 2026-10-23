@@ -85,6 +85,10 @@ For detailed architecture, Raft consensus mechanisms, and partition management, 
 
 ---
 
+## Upgrading from 1.7
+
+Before starting 1.8 on existing HStore data, follow the [GraphID upgrade checks and recovery guide](../docs/graphid-upgrade.md). The Store distribution includes a read-only `bin/hugegraph-store-check.sh --check` command.
+
 ## Quick Start
 
 ### Prerequisites
