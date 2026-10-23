@@ -9,7 +9,9 @@ SeaTunnel 默认关闭。给 HugeGraph Helm 命令增加 `--set seatunnel.enable
 | `seatunnel.mode: standalone` | 一个默认混合角色节点，同时承担 master 和 worker |
 | `seatunnel.mode: cluster` | 独立 master、worker Deployment，默认各两个副本 |
 
-两套拓扑独立选择。SeaTunnel 源码由 [HugeGraph SeaTunnel fork](https://github.com/hugegraph/seatunnel/tree/dev/deploy/kubernetes/seatunnel) 维护，复用官方启动脚本、ConfigMap 挂载和 Headless Service 发现方式；HugeGraph 只引入固定版本的打包依赖，别名为 `seatunnel`，不维护第二套模板，也不需要 Operator 或 CRD。
+`values-single.yaml` 启动的是 1 PD + 1 Store + 1 Server 的 HStore 拓扑，数据由 Store 管理；这里的 single 指各组件一个副本，两套拓扑独立选择。
+
+SeaTunnel 源码由 [HugeGraph SeaTunnel fork](https://github.com/hugegraph/seatunnel/tree/dev/deploy/kubernetes/seatunnel) 维护，复用官方启动脚本、ConfigMap 挂载和 Headless Service 发现方式；HugeGraph 只引入固定版本的打包依赖，别名为 `seatunnel`，不维护第二套模板，也不需要 Operator 或 CRD。
 
 单机使用官方脚本的默认混合角色，不传 `-r`。SeaTunnel 3.0.0 的 Java 入口只接受显式的 `master` 或 `worker`，传入 `-r master_and_worker` 会启动失败；本次启动实测已发现并修正这一点。
 
@@ -18,7 +20,7 @@ SeaTunnel 默认关闭。给 HugeGraph Helm 命令增加 `--set seatunnel.enable
 以下命令从 HugeGraph 仓库根目录执行，选择一种安装方式：
 
 ```bash
-# 小型 HugeGraph + 单机 SeaTunnel
+# HugeGraph 1 PD + 1 Store + 1 Server + 单机 SeaTunnel
 helm install hugegraph ./helm/hugegraph -n hugegraph --create-namespace \
   -f helm/hugegraph/values-single.yaml \
   -f helm/hugegraph/examples/values-seatunnel-standalone.yaml \
@@ -89,6 +91,8 @@ seatunnel:
 ```
 
 这些变量同时进入 master 和 worker，作业文件通过 `${HG_USERNAME}`、`${HG_PASSWORD}` 读取凭据。Chart 不创建 HugeGraph 账号，也不复制管理员密码；账号需有目标图的读写及 schema 权限。更新 Secret 后需重启相关 Pod，刷新环境变量。
+
+使用默认自动生成的管理员 Secret 进行本地验证时，也可将 `HG_USERNAME` 设置为 `admin`，让 `HG_PASSWORD` 的 `secretKeyRef` 直接引用 `<release>-admin` 的 `password` 键，无需另建或复制 Secret。本次 1+1+1 验证使用此方式；实际作业按需使用专用账号。
 
 `global.imageRegistry` 同样作用于 SeaTunnel；显式指定完整仓库地址优先。SeaTunnel 保留上游的 `image.registry`、`image.pullSecret` 键，不继承 HugeGraph 顶层的 `imagePullSecrets`。
 
@@ -189,24 +193,42 @@ helm lint helm/hugegraph --set seatunnel.enabled=true
 
 版本变化时更新父 Chart 的依赖版本，移除旧归档，提交新归档及 `Chart.lock`。原生 `file://../../../seatunnel/deploy/kubernetes/seatunnel` 依赖负责打包；最终安装使用随 HugeGraph 发布的归档，不需要相邻源码仓库或联网下载 Chart。
 
-2026-10-23 本地验证记录（台北时间）：测试使用独立 kind 集群，直接安装 HugeGraph 仓库携带的 `seatunnel-helm-3.0.1-hugegraph.1.tgz`。验证镜像由经过官方 SHA-512 校验的 SeaTunnel 3.0.0 二进制、经过 Maven 校验的连接器和 Temurin 17 JRE 构建；HugeGraph 1.8.0/RocksDB 在集群外的隔离本机实例运行。
+### HStore 1+1+1 联合部署实测
+
+2026-10-23（台北时间），在独立 kind / Kubernetes 1.34.0 中直接安装 HugeGraph 父 Chart，使用 `values-single.yaml`：**1 PD + 1 Store + 1 Server**，同时启用 SeaTunnel standalone。没有使用集群外的 HugeGraph 服务。测试 overlay 只调整本地镜像、资源、Service 类型、JVM 参数和 SeaTunnel 凭据引用，关闭 Hubble；保留 PD/Store 持久化及 Server/PD 默认认证。
+
+PD、Store、Server 使用当前 1.8.0 源码 `f60ad3e3b` 的发行包，沿用仓库 Dockerfile 的运行阶段与官方入口。SeaTunnel 使用经官方 SHA-512 校验的 3.0.0 二进制、经 Maven 校验的 HugeGraph/FakeSource/Console 连接器和 Temurin 17 JRE。受测试环境的 Docker VFS/native snapshotter 磁盘限制，四个镜像合并为单层后导入节点，保留原始文件系统、ENV、CMD 和 ENTRYPOINT；没有为此修改项目代码。
+
+| 检查 | 实际结果 |
+|---|---|
+| 父 Helm 安装 | 22:38，`helm install --wait` 成功；PD、Store、Server、SeaTunnel 四个 Pod 均 `1/1 Running`、重启 0 |
+| 持久化 | PD 5Gi、Store 10Gi，两个 PVC 均 `Bound` |
+| Helm 启动后检查 | `helm test hugegraph --logs` 成功；Server 1.8.0、Gremlin 3.8.1，默认图绑定及索引状态检查通过 |
+| 实际存储后端 | Server 配置 `backend=hstore`，PD 中一个 Store 为 `Up`；graph_a、graph_b 的 API 均返回 `backend=hstore`，PD 图目录也包含两图 |
+| 默认认证 | 匿名访问图列表返回 401，管理员认证返回 200；SeaTunnel 通过 `secretKeyRef` 直接引用 Helm 已生成的管理员密码 |
+| 两个空图 | 导入前 `A=0、B=0` |
+| 直接导入 A | 22:40，作业 `1166023243023253505` 为 `FINISHED`，读取 10、写入 10、失败 0；之后 `A=10、B=0` |
+| A → B 复制 | 作业 `1166023260857434113` 为 `FINISHED`，读取 10、写入 10、失败 0；`A=10、B=10`，全部 name/age 逐条一致 |
+| 图隔离 | 仅将 B 的 `person_01.age` 改为 999，A 仍为 21，确认两个 HStore 图的数据独立 |
+| 重复复制 | 作业 `1166023273259991041` 为 `FINISHED`，读取 10、写入 10、失败 0；B 恢复为 21，两图仍各十条且内容一致 |
+| 文档命令复核 | 使用仓库原始 HOCON 和本文 CLI 提交；本文 A/B 比较 Gremlin 原文执行成功，返回 `count_a=10、count_b=10、same=true` 及完整十行数据 |
+| SeaTunnel 切至集群 | 22:41，1 master + 1 worker 均 Ready、PID 1 为 Java；复制作业 `1166023709937369090` 为 `FINISHED`，读取 10、写入 10、失败 0；B 单独改为 999 后再次复制恢复，两图各十条且逐属性一致 |
+| SeaTunnel 切回单机 | 22:43，恢复一个 Ready 混合节点、PID 1 为 Java，worker 已移除；两图仍为 HStore，各十条且 `same=true`，认证仍返回 401/200 |
+| 切换期间 HugeGraph 状态 | 原 PD、Store、Server Pod 均未重建、重启 0；两个 PVC 保持 Bound，三个认证 Secret 的值未变化 |
+
+Gremlin 将上述 Map 序列化为 `result.data=[{"count_a":10},{"count_b":10},{"same":true},{"rows":[...]}]`；自动校验时需合并这些对象，不能只读取第一项。
+
+### 其他已完成检查
 
 | 检查 | 结果与范围 |
 |---|---|
 | Python Helm 回归 | 23 项通过 |
-| Helm 单元测试 | 309 项通过 |
+| Helm 单元测试 | 309 项通过，36 suites、4 snapshots |
 | HugeGraph 推送前检查 | `mvn editorconfig:format` 通过；`mvn clean compile -Dmaven.javadoc.skip=true` 全部 38 模块通过 |
-| Kubernetes 单机启动 | 22:08，Pod `1/1 Running`、重启 0；REST 正常，实际注册一个 worker |
-| Kubernetes 单机导入 | CLI 作业 `1166015307609800705`：读取 10、写入 10、失败 0；graph_a 为 10 条 |
-| Kubernetes 单机 A → B | CLI 作业 `1166015324982607873`：读取 10、写入 10、失败 0；两图各 10 条，全部 name/age 属性一致 |
-| Kubernetes 切到集群 | 22:10，1 master + 1 worker 均 Ready、重启 0；复制任务 `1166015886427947011` 读取 10、写入 10、失败 0；再次核对两图内容一致 |
-| Kubernetes 切回单机 | 22:12，恢复一个 Ready 混合节点，REST 正常；两图数据仍各 10 条且内容一致 |
-| 启动进程与凭据传递 | 两种模式的容器 PID 1 均为 Java；Secret keyRef → Pod 环境变量 → 未改写的 HOCON 凭据占位符 → CLI 提交通过 |
-| 本机引擎启动 | 官方 SeaTunnel 3.0.0 二进制、Java 17；`/overview` 返回版本 3.0.0、一个 worker |
-| 直接导入 graph_a | 固定十条 FakeSource 数据；作业 `1166014497995882497` 为 `FINISHED`，读取与提交均为 10 |
-| graph_a → graph_b | 作业 `1166014497996079105` 为 `FINISHED`；使用文档中的 CLI 与环境变量方式再次复制，作业 `1166014645144649729` 读取 10、写入 10、失败 0 |
-| 图数据核对 | 隔离的 HugeGraph 1.8.0/RocksDB；Gremlin 返回 `count_a=10`、`count_b=10`、`same=true`，逐条比对 `person_01` 至 `person_10` 的 name/age 完全一致 |
+| 远端许可检查 | 生成的 `Chart.lock` 按精确路径排除 license header 检查；提交 `0e96f1017` 的 Helm、license header 和 RAT 检查通过 |
+| 前一轮 SeaTunnel 切换基线 | 22:08–22:12，使用同一打包依赖，SeaTunnel 单机 → 1 master + 1 worker → 单机均 Ready、重启 0；单机完成导入与复制，集群完成复制，每次读取 10、写入 10、失败 0，两图各十条且内容一致。此轮 HugeGraph 为集群外的 1.8.0/RocksDB，仅作补充记录 |
+| 进程与凭据传递 | 两种 SeaTunnel 模式的 PID 1 均为 Java；Secret keyRef → Pod 环境变量 → 原始 HOCON 占位符 → CLI 提交通过 |
 
-集群测试显式设置 `master.replicas=1`、`worker.replicas=1`、`engineConfig.backup-count=0`，用于验证分离角色及数据路径，不是 HA 测试。切换时观察到约 30 秒重新选举窗口，因此不能承诺无中断切换。全部检查完成后已清理本次临时集群及测试进程。
+两轮集群测试均使用 `master.replicas=1`、`worker.replicas=1`。本轮 HStore 沿用集群默认 `backup-count=1`，前一轮外部 RocksDB 测试显式设置 `backup-count=0`；这里只验证分离角色及数据路径。本轮两次 Helm 模式升级各约 30 秒完成；前一轮还观察到约 30 秒重新选举窗口，不能承诺无中断切换。
 
-本次覆盖的是 Kubernetes 中的 SeaTunnel 访问外部 HugeGraph/RocksDB，没有验证完整 HugeGraph HStore Helm 集群、多标签、边、生产故障恢复或 CNI 对 NetworkPolicy 的实际执行。隔离 HugeGraph 关闭认证，因此仅确认了凭据注入与变量解析，没有验证认证授权。公开默认镜像的连接器清单仍需按实际镜像检查。
+本次 HStore 验证覆盖开启默认认证的 1+1+1 Helm 部署及一个顶点标签的导入、复制和图隔离；未覆盖多标签、边、细粒度授权、生产 HA、持久化作业恢复或 CNI 对 NetworkPolicy 的实际执行。公开默认镜像的连接器清单仍需按实际镜像检查。
