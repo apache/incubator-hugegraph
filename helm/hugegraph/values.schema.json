@@ -58,6 +58,43 @@
           "type": "boolean"
         }
       }
+    },
+    "seatunnel": {
+      "type": "object",
+      "description": "Optional native SeaTunnel hybrid Kubernetes deployment.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "standalone",
+            "cluster"
+          ]
+        },
+        "replicas": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "service": {
+          "$ref": "#/definitions/service"
+        },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "username": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^:]+$"
+            },
+            "password": {
+              "type": "string"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -118,6 +155,18 @@
           "$ref": "#/definitions/networkPolicyComponent"
         },
         "hubble": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "extraIngress": {
+              "$ref": "#/definitions/networkPolicyIngressRules"
+            },
+            "extraEgress": {
+              "$ref": "#/definitions/networkPolicyEgressRules"
+            }
+          }
+        },
+        "seatunnel": {
           "type": "object",
           "additionalProperties": false,
           "properties": {

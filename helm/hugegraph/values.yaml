@@ -533,6 +533,44 @@ hubble:
       failureThreshold: 3
       timeoutSeconds: 5
 
+# Optional engine using Apache SeaTunnel's native hybrid Kubernetes deployment.
+# One hybrid StatefulSet serves both modes; HTTP includes the built-in Web UI.
+seatunnel:
+  enabled: false
+  mode: standalone
+  # Used in cluster mode; standalone always starts one hybrid node.
+  replicas: 2
+  image:
+    repository: apache/seatunnel
+    tag: "3.0.0"
+    pullPolicy: IfNotPresent
+  service:
+    # Unset inherits mode (easy: NodePort, strict: ClusterIP).
+    type:
+    # Omitted/0 allocates automatically; only the HTTP/UI port is exposed.
+    nodePort:
+    annotations: {}
+  auth:
+    # Native HTTP Basic authentication for the Web UI and all REST endpoints.
+    # Independent of the HugeGraph credential used by source/sink connectors.
+    username: admin
+    # Empty generates a kept Secret; upgrades reuse the existing password.
+    password: ""
+  javaOpts: "-Xms512m -Xmx1g"
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1536Mi
+    limits:
+      memory: 2Gi
+  # Native Kubernetes env entries; matching names override automatic HG_* values.
+  # HG_HOST/PORT/PROTOCOL, HG_USERNAME/PASSWORD and HG_GRAPH_SPACE/NAME default to
+  # this release's Server, existing admin Secret, graph space and graph_a.
+  env: []
+  # Full native configuration files, keyed by filename (e.g. seatunnel.yaml).
+  # Keep member port 5801 and HTTP 8080 when overriding discovery/engine files.
+  config: {}
+
 # Kubernetes NetworkPolicy: mode default plus explicit per-component rules.
 # easy does not isolate clients; strict isolates release traffic and DNS. Only
 # enforced when the network plugin implements NetworkPolicy (kind v0.25+,
@@ -555,6 +593,12 @@ networkPolicy:
     extraIngress: []
     # For Hubble's optional outside endpoints (es.urls, prometheus.url set
     # through extraEnv). PD, Store and Server reach only the release and DNS.
+    extraEgress: []
+  seatunnel:
+    # SeaTunnel peers, DNS and the HugeGraph Server API are allowed by default.
+    # Add submitters/monitoring here using native NetworkPolicy rules.
+    extraIngress: []
+    # External source/sink systems and shared checkpoint storage need egress.
     extraEgress: []
 
 # No init Job; see README.md for the HStore initialization contract.

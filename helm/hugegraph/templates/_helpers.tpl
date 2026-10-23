@@ -23,9 +23,12 @@
 {{- if not (hasKey .Values "hubble") -}}
 {{- $_ := set .Values "hubble" (dict "enabled" false "service" dict "persistence" dict) -}}
 {{- end -}}
+{{- if not (hasKey .Values "seatunnel") -}}
+{{- $_ := set .Values "seatunnel" (dict "enabled" false "service" dict) -}}
+{{- end -}}
 {{- $strict := eq (.Values.mode | default "easy") "strict" -}}
 {{- $serviceType := ternary "ClusterIP" "NodePort" (or $strict $legacy) -}}
-{{- range $comp := list "server" "hubble" -}}
+{{- range $comp := list "server" "hubble" "seatunnel" -}}
 {{- $component := get $.Values $comp -}}
 {{- $svc := get $component "service" | default dict -}}
 {{- $_ := set $component "service" $svc -}}
@@ -48,7 +51,7 @@
 {{- $registry := trimSuffix "/" (get (.Values.global | default dict) "imageRegistry" | default "") -}}
 {{- if contains "://" $registry -}}{{- fail "global.imageRegistry must be a registry host/path without http:// or https://" -}}{{- end -}}
 {{- if $registry -}}
-{{- range $comp := list "pd" "store" "server" "hubble" -}}
+{{- range $comp := list "pd" "store" "server" "hubble" "seatunnel" -}}
 {{- $image := get (get $.Values $comp) "image" | default dict -}}
 {{- if $image -}}
 {{- $_ := set $image "repository" (include "hugegraph.registryImage" (dict "reference" $image.repository "registry" $registry)) -}}
@@ -733,7 +736,28 @@ The minimum Server replica count that a PDB must remain valid against.
 Cross-field validation that JSON Schema draft-07 cannot express.
 */}}
 {{- define "hugegraph.validateValues" -}}
+{{- if (.Values.seatunnel | default dict).enabled -}}
+{{- if not (has .Values.seatunnel.mode (list "standalone" "cluster")) -}}
+{{- fail "seatunnel.mode must be standalone or cluster" -}}
+{{- end -}}
+{{- if and (eq .Values.seatunnel.mode "cluster") (lt (int .Values.seatunnel.replicas) 2) -}}
+{{- fail "seatunnel.replicas must be at least 2 in cluster mode" -}}
+{{- end -}}
+{{- end -}}
+
 {{- include "hugegraph.resolveValues" . -}}
+{{- if (.Values.seatunnel | default dict).enabled -}}
+{{- $svc := .Values.seatunnel.service -}}
+{{- if and (get $svc "nodePort") (not (has $svc.type (list "NodePort" "LoadBalancer"))) -}}
+{{- fail "seatunnel.service.nodePort requires seatunnel.service.type to be NodePort or LoadBalancer" -}}
+{{- end -}}
+{{- range $key := list "username" "password" -}}
+{{- $value := get ($.Values.seatunnel.auth | default dict) $key | default "" -}}
+{{- if or (ne $value (trim $value)) (contains "${" $value) -}}
+{{- fail (printf "seatunnel.auth.%s cannot contain ${...} placeholders or leading/trailing whitespace: native Engine YAML expands or trims them" $key) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- $startupBudget := include "hugegraph.server.startupProbeBudget" . | int -}}
 {{- if lt $startupBudget (add (int .Values.server.storageWaitTimeoutSeconds) 120) -}}
 {{- fail "server.probes.startup.failureThreshold and periodSeconds must leave at least server.storageWaitTimeoutSeconds + 120 seconds to wait for storage and start Server; increase the probe budget or reduce server.storageWaitTimeoutSeconds" -}}
@@ -1026,6 +1050,22 @@ resolver (CoreDNS in any namespace, NodeLocal DNSCache).
 {{- $rules = append $rules (printf "- protocol: TCP\n  port: %d" (int .)) -}}
 {{- end -}}
 {{- join "\n" $rules -}}
+{{- end }}
+
+{{/* Native SeaTunnel resources belong to this HugeGraph release. */}}
+{{- define "hugegraph.seatunnel.name" -}}
+{{- printf "%s-seatunnel" (include "hugegraph.fullname" . | trunc 44 | trimSuffix "-") -}}
+{{- end }}
+
+{{- define "hugegraph.netpol.seatunnelLabels" -}}
+{{ include "hugegraph.selectorLabels" . }}
+app.kubernetes.io/component: seatunnel
+{{- end }}
+
+{{- define "hugegraph.netpol.seatunnelPeer" -}}
+- podSelector:
+    matchLabels:
+      {{- include "hugegraph.netpol.seatunnelLabels" . | nindent 6 }}
 {{- end }}
 
 {{- define "hugegraph.netpol.dns" -}}

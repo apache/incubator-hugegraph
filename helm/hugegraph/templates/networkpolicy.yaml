@@ -135,6 +135,9 @@ spec:
         {{- if $hubbleEnabled }}
         {{- include "hugegraph.netpol.peer" (dict "root" . "component" "hubble") | nindent 8 }}
         {{- end }}
+        {{- if (.Values.seatunnel | default dict).enabled }}
+        {{- include "hugegraph.netpol.seatunnelPeer" . | nindent 8 }}
+        {{- end }}
       ports:
         {{- include "hugegraph.netpol.ports" (list $serverPort) | nindent 8 }}
     {{- with get (get $np "server" | default dict) "extraIngress" }}
