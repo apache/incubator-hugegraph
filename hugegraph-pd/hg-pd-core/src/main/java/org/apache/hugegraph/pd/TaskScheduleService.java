@@ -61,8 +61,6 @@ public class TaskScheduleService {
     private static final String KEY_ENABLE_AUTO_BALANCE = "key/ENABLE_AUTO_BALANCE";
     // The dynamic balancing can only be carried out after the machine is offline for 30 minutes
     private final long TurnOffAndBalanceInterval = 30 * 60 * 1000;
-    // leader balances the time interval
-    private final long BalanceLeaderInterval = 30 * 1000;
     // Stores send partition heartbeats every 5 seconds; older stats no longer show a live leader
     private static final long BALANCE_LEADER_STATS_MAX_AGE = 30 * 1000;
     // A raft leader rejects writes while it waits for a transfer target to catch up, so the
@@ -552,15 +550,19 @@ public class TaskScheduleService {
     /**
      * Plans leader transfers over shardGroups. A periodic run passes the groups that
      * autoBalancePartitionLeader checked and a check that each of its transfers must pass
-     * right before it is sent; a manual run passes no check.
+     * right before it is sent; a manual run passes no check. Unless immediately is set, as on
+     * every manual entry, it plans only when pd.balance-leader-interval has passed since the
+     * last plan of either kind.
      */
     private Map<Integer, Long> balancePartitionLeader(boolean immediately,
                                                       List<Metapb.ShardGroup> shardGroups,
                                                       TransferCheck check) throws PDException {
         Map<Integer, Long> results = new HashMap<>();
 
-        if (!immediately &&
-            System.currentTimeMillis() - lastBalanceLeaderTime < BalanceLeaderInterval) {
+        // The periodic path follows the configured interval, so a short one is honored and
+        // the first periodic plan after a manual balance waits one interval
+        long interval = TimeUnit.SECONDS.toMillis(pdConfig.getBalanceLeaderInterval());
+        if (!immediately && System.currentTimeMillis() - lastBalanceLeaderTime < interval) {
             return results;
         }
         lastBalanceLeaderTime = System.currentTimeMillis();

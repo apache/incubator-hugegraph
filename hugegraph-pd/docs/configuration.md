@@ -195,7 +195,7 @@ pd:
 | `pd.initial-store-count` | Integer | `1` | Minimum number of Store nodes required for cluster to be operational. Set to expected initial store count. |
 | `pd.initial-store-list` | String | `127.0.0.1:8500` | Comma-separated list of Store gRPC addresses to auto-activate on startup. Useful for bootstrapping. |
 | `pd.balance-leader-enable` | Boolean | `false` | Run partition leader balancing periodically on the PD leader. When off, leaders move back only through a manual call: `/v1/task/balanceLeaders`, `/v1/balanceLeaders` or the `balanceLeaders` gRPC call. |
-| `pd.balance-leader-interval` | Integer | `300` | Seconds between periodic leader balance checks. Only read when `pd.balance-leader-enable` is `true`. Must be positive; otherwise PD logs a warning and does not run periodic balancing. |
+| `pd.balance-leader-interval` | Integer | `300` | Seconds between periodic leader balance checks. A check plans transfers only when this much time has passed since the last plan, including a manual `balanceLeaders` call. Only read when `pd.balance-leader-enable` is `true`. Must be positive; otherwise PD logs a warning and does not run periodic balancing. |
 | `pd.balance-leader-max-skew` | Integer | `2` | A check balances leaders only when the most leaders on one store minus the fewest on another exceeds this value, and the leaders are not already where the balancer would put them (uneven shard placement can leave its best spread above this value). Must be `0` or more; otherwise PD logs a warning and does not run periodic balancing. |
 
 **Production Recommendations**:

@@ -436,6 +436,45 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
     }
 
     @Test
+    public void testAutoBalancePartitionLeaderFollowsInterval() throws Exception {
+        // With a 1 s interval the next periodic plan is due 1 s after the last one, not 30 s
+        getPdConfig().setBalanceLeaderInterval(1);
+        try {
+            var service = newTaskService();
+            var rst = new Balance(1, 1, 1, 1, 1, 1).on(service).run();
+            assertEquals(4, rst.size());
+
+            rst = new Balance(1, 1, 1, 1, 1, 1).on(service).run();
+            assertTrue(rst.isEmpty());
+
+            Thread.sleep(1100);
+            rst = new Balance(1, 1, 1, 1, 1, 1).on(service).run();
+            assertEquals(4, rst.size());
+        } finally {
+            getPdConfig().setBalanceLeaderInterval(300);
+        }
+    }
+
+    @Test
+    public void testAutoBalancePartitionLeaderWaitsAfterManualBalance() throws Exception {
+        // A manual balance plans at once; the next periodic plan waits one interval after it
+        getPdConfig().setBalanceLeaderInterval(1);
+        try {
+            var service = newTaskService();
+            var rst = new Balance(1, 1, 1, 1, 1, 1)
+                    .beforeRun(s -> assertEquals(4, s.balancePartitionLeader(true).size()))
+                    .on(service).run();
+            assertTrue(rst.isEmpty());
+
+            Thread.sleep(1100);
+            rst = new Balance(1, 1, 1, 1, 1, 1).on(service).run();
+            assertEquals(4, rst.size());
+        } finally {
+            getPdConfig().setBalanceLeaderInterval(300);
+        }
+    }
+
+    @Test
     public void testAutoBalancePartitionLeaderWithNegativeSkew() throws PDException {
         // with the default skew this layout moves four leaders; -1 must not run a plan
         getPdConfig().setBalanceLeaderMaxSkew(-1);
@@ -516,6 +555,12 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                                         .run();
     }
 
+    @FunctionalInterface
+    private interface ServiceAction {
+
+        void run(TaskScheduleService service) throws PDException;
+    }
+
     /**
      * One periodic balance over shard groups 0..n-1 on stores 1, 2 and 3, with the leader of
      * group i on leaderStores[i]. By default every group is Normal with fresh partition stats,
@@ -533,6 +578,7 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         private ToLongFunction<Long> reportTime;
         private Function<Long, Metapb.StoreState> storeState = storeId -> Metapb.StoreState.Up;
         private Function<Long, Metapb.StoreState> storeStateAfterRead;
+        private ServiceAction beforeRun;
         private UnaryOperator<Metapb.ShardGroup> afterRead;
         private TaskScheduleService service;
 
@@ -589,6 +635,12 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
         // change landing between check and transfer. Runs on a fresh service.
         Balance afterRead(UnaryOperator<Metapb.ShardGroup> afterRead) {
             this.afterRead = afterRead;
+            return this;
+        }
+
+        // Called on the service right before the periodic balance, with the layout in place
+        Balance beforeRun(ServiceAction beforeRun) {
+            this.beforeRun = beforeRun;
             return this;
         }
 
@@ -688,6 +740,9 @@ public class TaskScheduleServiceTest extends PDCoreTestBase {
                     }
                     balanceService = new TaskScheduleService(getPdConfig(), storeService,
                                                              getPartitionService());
+                }
+                if (beforeRun != null) {
+                    beforeRun.run(balanceService);
                 }
                 return balanceService.autoBalancePartitionLeader();
             } finally {
