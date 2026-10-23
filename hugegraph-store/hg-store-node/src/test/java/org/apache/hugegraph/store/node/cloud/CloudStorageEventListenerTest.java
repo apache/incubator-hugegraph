@@ -2230,6 +2230,7 @@ public class CloudStorageEventListenerTest {
         CapturingProvider provider = new CapturingProvider();
         AtomicBoolean metadataHealthy = new AtomicBoolean(false);
         AtomicInteger healthyPublishes = new AtomicInteger();
+        AtomicInteger failedPublishes = new AtomicInteger();
         Thread caller = Thread.currentThread();
         AtomicBoolean publishedOnCaller = new AtomicBoolean(false);
         CloudStorageEventListener l = new CloudStorageEventListener(provider, List.of(DATA_ROOT),
@@ -2246,6 +2247,7 @@ public class CloudStorageEventListenerTest {
                     publishedOnCaller.set(true);
                 }
                 if (!metadataHealthy.get()) {
+                    failedPublishes.incrementAndGet();
                     return false;
                 }
                 healthyPublishes.incrementAndGet();
@@ -2256,6 +2258,10 @@ public class CloudStorageEventListenerTest {
             for (int i = 1; i <= 3; i++) {
                 l.onTableFileDeleted("db0", "default", DATA_ROOT + "/db0/00000" + i + ".sst");
             }
+            // Let a pass fail first: its backoff holds every later pass until all three deletes
+            // are queued, so they share one publish. Flipping earlier lets a pass that saw only
+            // the first delete publish on its own.
+            waitForCondition(() -> failedPublishes.get() > 0, "the first publish must fail");
             metadataHealthy.set(true);
             waitForCondition(() -> provider.deletes.size() == 3,
                              "all superseded SSTs must be deleted once metadata publishes");
