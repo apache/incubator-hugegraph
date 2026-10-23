@@ -6,7 +6,7 @@
 # The ASF licenses this file to You under the Apache License, Version 2.0
 # (the "License"); you may not use this file except in compliance with
 # the License.  You may obtain a copy of the License at
-#
++#
 #    http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
@@ -29,6 +29,28 @@ for pair in \
         echo "Checking ${pair#*=}:${IMAGE_TAG} ($IMAGE_ID)"
         HC=$(docker image inspect --format '{{json .Config.Healthcheck}}' "$IMAGE_ID")
         [[ "$HC" != null ]] || { echo "Missing HEALTHCHECK: $dockerfile"; exit 1; }
+
+        case "$dockerfile" in
+            hugegraph-pd/Dockerfile)
+                EXPECTED_VOLUME=/hugegraph-pd/pd_data
+                ;;
+            hugegraph-store/Dockerfile)
+                EXPECTED_VOLUME=/hugegraph-store/storage
+                ;;
+            hugegraph-server/Dockerfile)
+                EXPECTED_VOLUME=/hugegraph-server/rocksdb-data
+                ;;
+            hugegraph-server/Dockerfile-hstore)
+                EXPECTED_VOLUME=
+                ;;
+        esac
+        ACTUAL_VOLUMES=$(docker image inspect --format \
+            '{{range $path, $_ := .Config.Volumes}}{{$path}}{{"\n"}}{{end}}' \
+            "$IMAGE_ID" | sed '/^$/d' | sort)
+        [[ "$ACTUAL_VOLUMES" == "$EXPECTED_VOLUME" ]] || {
+            echo "ERROR: $dockerfile declares volumes [$ACTUAL_VOLUMES]; expected [$EXPECTED_VOLUME]"
+            exit 1
+        }
 
         # Helm reuses these images for tool containers instead of pulling curlimages/curl.
         # Check the same non-root/read-only tool environment as the Server test hook.
