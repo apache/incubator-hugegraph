@@ -27,7 +27,7 @@ Use its DNS discovery alternative, so Kubernetes API RBAC is unnecessary.
   "cluster-name" $name
   "network" (dict
     "port" (dict "auto-increment" false "port" 5801)
-    "join" (dict "kubernetes" (dict "enabled" true "service-dns" $dns "service-dns-timeout" 10)))
+    "join" (dict "kubernetes" (dict "enabled" true "service-dns" $dns "service-port" 5801 "service-dns-timeout" 10)))
   "properties" (dict "hazelcast.logging.type" "log4j2")) -}}
 {{- $_ := set $data "hazelcast.yaml" ($hazelcast | toYaml) -}}
 {{- $client := dict "hazelcast-client" (dict

@@ -125,6 +125,12 @@ class SeaTunnelChartTest(unittest.TestCase):
         self.assertTrue(discovery["enabled"])
         self.assertTrue(discovery["service-dns"].startswith(headless["metadata"]["name"] + ".graphs.svc"))
         self.assertNotIn("service-name", discovery)
+        # DNS discovery otherwise dials Hazelcast's default5701 and creates
+        # isolated one-member clusters even while both Pods report Ready.
+        member_port = next(port["containerPort"] for port in
+                           pod(workload)["spec"]["containers"][0]["ports"]
+                           if port["name"] == "hazelcast")
+        self.assertEqual(member_port, discovery["service-port"])
         client = yaml.safe_load(data["hazelcast-client.yaml"])["hazelcast-client"]
         self.assertIn(discovery["service-dns"] + ":5801", client["network"]["cluster-members"])
         self.assertFalse(any(doc["kind"] in ("Role", "RoleBinding") for doc in engine_resources(documents)))
