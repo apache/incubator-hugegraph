@@ -22,6 +22,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import re
 import subprocess
 import sys
 import tempfile
@@ -81,4 +82,50 @@ with tempfile.TemporaryDirectory(prefix="topling-entrypoints-") as temporary:
         assert result.returncode != 0, "unverified artifact accepted"
         assert "Error: Topling builds require" in result.stderr, result.stderr
     print("PASS: image preparation rejects missing/untrusted artifact inputs")
+
+    # Exercise the real image helper through preparation and profile installation,
+    # with only download/native preparation stubbed (native JNI is tested separately).
+    distribution = Path(temporary) / "distribution"
+    (distribution / "bin").mkdir(parents=True)
+    (distribution / "conf").mkdir()
+    (distribution / "tools").mkdir()
+    original_profile = repo / "hugegraph-server/hugegraph-dist/src/assembly/static/conf/toplingdb.yaml"
+    original_bytes = original_profile.read_bytes()
+    shutil.copy(original_profile, distribution / "conf/toplingdb.yaml")
+    preparer = distribution / "bin/prepare-topling.sh"
+    preparer.write_text("#!/bin/bash\ntest -r \"$TOPLING_JNI_JAR\" && test \"${#TOPLING_JNI_SHA256}\" -eq 64\n")
+    downloader = distribution / "tools/curl"
+    downloader.write_text("#!/bin/bash\nwhile (( $# )); do if [[ $1 == --output ]]; then printf stub > \"$2\"; exit 0; fi; shift; done\nexit 1\n")
+    downloader.chmod(0o755)
+    environment.update(TOPLING_JNI_SHA256="a" * 64, TOPLING_JNI_URL="https://example.invalid/immutable.jar")
+    environment["PATH"] = str(distribution / "tools") + os.pathsep + environment["PATH"]
+    result = subprocess.run(["bash", str(helper)], cwd=distribution, env=environment,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    community_profile = repo / "docker/toplingdb.yaml"
+    assert (distribution / "conf/toplingdb.yaml").read_bytes() == community_profile.read_bytes()
+    assert original_profile.read_bytes() == original_bytes, "distribution source profile changed"
+    profile = community_profile.read_text()
+    # This profile contains only indentation-based mappings. Reject duplicate
+    # paths instead of silently letting the YAML reader discard an earlier key.
+    seen = set()
+    parents = []
+    for line in profile.splitlines():
+        match = re.match(r"^( *)([A-Za-z_][\w]*):", line)
+        if match is None:
+            continue
+        indent, key = len(match[1]), match[2]
+        while parents and parents[-1][0] >= indent:
+            parents.pop()
+        path = tuple(parent[1] for parent in parents) + (key,)
+        assert path not in seen, "duplicate YAML key: " + ".".join(path)
+        seen.add(path)
+        parents.append((indent, key))
+    classes = set(re.findall(r"^\s+class:\s*(\S+)$", profile, re.MULTILINE))
+    assert classes == {"LRUCache", "SkipList", "BlockBasedTable"}, classes
+    assert "CSPP" not in profile and "ToplingZip" not in profile
+    for setting in ("capacity: 64M", "write_buffer_size: 16M", "max_write_buffer_number: 3",
+                    "memtable_as_log_index: false", "auto_start_http: false"):
+        assert setting in profile, setting
+    print("PASS: community image installs small native profile and preserves full distribution profile")
 PY

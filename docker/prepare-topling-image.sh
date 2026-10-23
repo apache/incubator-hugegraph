@@ -50,3 +50,7 @@ fi
 # The shared preparer verifies the hash, ELF/dependencies, and real EasyMigrate
 # behavior before installing a component-local runtime and checksum receipt.
 bash bin/prepare-topling.sh
+
+# Community images need no proprietary factory registration. Keep the full
+# distribution profile unchanged and install the image's smaller native profile.
+cp "$(dirname "${BASH_SOURCE[0]}")/toplingdb.yaml" conf/toplingdb.yaml

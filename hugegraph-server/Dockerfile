@@ -113,14 +113,14 @@ RUN chmod 755 ./docker-entrypoint.sh
 # distribution's normal capability probe. No network access is needed at startup.
 ARG TOPLING_JNI_URL
 ARG TOPLING_JNI_SHA256
-COPY docker/prepare-topling-image.sh docker/topling-runtime.env /tmp/
+COPY docker/prepare-topling-image.sh docker/topling-runtime.env docker/toplingdb.yaml /tmp/
 RUN --mount=type=secret,id=proxy_ca,required=false \
     --mount=type=secret,id=topling_jni,required=false \
     if [ "$RUNTIME_VARIANT" = topling ]; then \
         if [ -f /run/secrets/proxy_ca ]; then export CURL_CA_BUNDLE=/run/secrets/proxy_ca; fi; \
         bash /tmp/prepare-topling-image.sh; \
     fi \
-    && rm /tmp/prepare-topling-image.sh /tmp/topling-runtime.env
+    && rm /tmp/prepare-topling-image.sh /tmp/topling-runtime.env /tmp/toplingdb.yaml
 
 EXPOSE 8080
 VOLUME /hugegraph-server

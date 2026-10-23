@@ -298,6 +298,14 @@ independent image tag.
 
 The images include the verified JNI runtime and set both launcher and business
 provider configuration. No JAR download or `LD_PRELOAD` setting is needed at startup.
+The default image uses the community JNI with SkipList memtables and BlockBasedTable
+SSTs; it includes no proprietary trial modules. Its native profile starts with a
+64 MiB block cache and three 16 MiB write buffers per column family. Native memory
+still scales with databases and column families; these settings do not cap total
+process memory. Mount a tuned `conf/toplingdb.yaml` or select an external file with
+`TOPLINGDB_EASY_MIGRATE_CONF` when sizing a production deployment. CSPP and other
+optional modules require your own compatible JNI artifact and native profile.
+The unpacked distribution's full profile is unchanged.
 Existing data is not converted by selecting another image: use new volumes for
 ToplingDB, and migrate through the graph APIs after validating your workload.
 Returning to RocksDB uses its original deployment and volumes. See
