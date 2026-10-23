@@ -24,7 +24,7 @@ mode: easy
 global:
   imageRegistry: ""
   # standard: normal RocksDB images; topling: matching -topling tags on Linux amd64.
-  # Select a runtime for a fresh deployment; this does not migrate existing data.
+  # Matching compatible images reuse existing data/PVCs after normal shutdown.
   runtimeVariant: standard
 persistence:
   enabled: true

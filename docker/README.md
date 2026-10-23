@@ -280,7 +280,7 @@ Compose files, credentials, ports and lifecycle commands apply:
 ```bash
 export HUGEGRAPH_VERSION=latest-topling
 # Standalone Server with embedded ToplingDB
-# A distinct project creates fresh volumes for this runtime.
+# First deployment
 docker compose -p hugegraph-topling-standalone -f docker-compose.yml up -d --wait
 
 # Or PD + Store using ToplingDB, with an HStore Server
@@ -306,12 +306,38 @@ still scales with databases and column families; these settings do not cap total
 process memory. Mount a tuned `conf/toplingdb.yaml` or select an external file with
 `TOPLINGDB_EASY_MIGRATE_CONF` when sizing a production deployment. CSPP and other
 optional modules require your own compatible JNI artifact and native profile.
-The unpacked distribution's full profile is unchanged.
-Existing data is not converted by selecting another image: use new volumes for
-ToplingDB, and migrate through the graph APIs after validating your workload.
-Returning to RocksDB uses its original deployment and volumes. See
+The unpacked distribution's full profile is unchanged. The default community
+profile uses standard BlockBasedTable SSTs and supports opening compatible RocksDB
+data after a normal shutdown. The publication check seeds data using standard
+images from the same source commit, switches to Topling on the same volumes, and
+checks schema, indexes, graph operations and restart persistence. See
 [Topling runtime preparation and validation](../docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb)
-for the native configuration and compatibility requirements.
+for the native configuration and tested compatibility boundary.
+
+For an existing deployment, stop incoming work, stop the services normally, and
+select the matching Topling images. Keep the same Compose project, credentials and
+data mounts. For standalone, from this directory:
+
+```bash
+docker compose -f docker-compose.yml stop
+HUGEGRAPH_VERSION='<matching-version>-topling' \
+  docker compose -f docker-compose.yml up -d --wait
+```
+
+Use `docker-compose-hstore.yml` for the corresponding distributed deployment.
+The named data volumes are reattached automatically; no export/import or new
+project is needed. Return to standard RocksDB with the same stop/up sequence and
+its matching unsuffixed tag. Prefer versioned tags or verified digests: Topling
+`latest-topling` is published on demand and can lag standard `latest`. Changing
+storage providers does not bypass HugeGraph or RocksDB version compatibility.
+Back up the data and qualify representative existing data before production use.
+
+The images declare only database directories as Docker volumes, so replacing an
+image also replaces its binaries, configuration defaults and JNI. The supplied
+Compose files already mount these data directories separately. If an older
+custom deployment kept data only in an anonymous whole-application volume, first
+identify and preserve that volume's database directories; they are not copied
+automatically into a new data volume. Custom data/WAL paths must remain mounted.
 
 Source builds use the community JNI release and trusted SHA-256 pinned in
 [`topling-runtime.env`](topling-runtime.env). The image build downloads and verifies
@@ -324,8 +350,7 @@ docker compose -p hugegraph-topling-dev \
   -f docker-compose-hstore.yml -f docker-compose.dev.yml up -d --build --wait
 ```
 
-The overlay uses the usual local `:dev` tags. Build it on Linux amd64 and keep its
-project volumes separate from a RocksDB source deployment. For direct Docker and
+The overlay uses the usual local `:dev` tags. Build it on Linux amd64. For direct Docker and
 Bake builds, use `--build-arg RUNTIME_VARIANT=topling` or `RUNTIME_VARIANT=topling`
 respectively; the same pinned JNI defaults apply.
 

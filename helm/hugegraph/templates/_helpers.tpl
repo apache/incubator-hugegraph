@@ -814,11 +814,6 @@ and the upgrade passes.
 {{- fail (printf "%s.storage.enabled cannot change on an initialized release: StatefulSet volumeClaimTemplates are immutable and changing storage can discard data. Use a fresh release and migrate data" $comp) -}}
 {{- end -}}
 
-{{- $liveRuntime := dig "metadata" "annotations" "hugegraph.apache.org/rocksdb-runtime" "standard" $live -}}
-{{- $runtime := get ($.Values.global | default dict) "runtimeVariant" | default "standard" -}}
-{{- if and $wasPersistent (ne $liveRuntime $runtime) -}}
-{{- fail (printf "global.runtimeVariant cannot change from %s to %s on an initialized persistent %s release. Use a fresh release with empty volumes and migrate data through graph APIs" $liveRuntime $runtime $comp) -}}
-{{- end -}}
 {{- $liveReplicas := int (dig "spec" "replicas" 0 $live) -}}
 {{- $desired := int (get (get $.Values $comp) "replicas") -}}
 {{- if and (gt $liveReplicas 0) (lt $desired $liveReplicas) -}}

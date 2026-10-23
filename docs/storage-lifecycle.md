@@ -516,10 +516,27 @@ provider and launcher together. See the [Compose guide](../docker/README.md#topl
 and [Helm guide](../helm/hugegraph/README.md#toplingdb-runtime) for complete commands,
 source builds, custom registries and immutable image digests.
 
-Select a new Compose project or Helm release with fresh volumes for validation.
-Changing the image does not migrate an existing RocksDB database. Keep the original
-deployment's data and use graph APIs for a verified migration; the Helm chart
-rejects runtime changes on an initialized persistent release.
+Validate a new deployment first, then qualify a normal stop and image switch using
+existing RocksDB data. With the default community profile, Topling uses standard
+BlockBasedTable SSTs; a compatible existing database can be opened directly, without
+graph API export/import. Preserve the Compose project or Helm release, credentials,
+data/WAL paths and named volumes/PVCs. The chart permits a runtime change while
+retaining its storage and Raft membership protections. The images keep binaries and
+JNI outside Docker data volumes so a Compose image change loads the selected runtime.
+
+The image publication gate checks standard-to-Topling compatibility with standard
+images built from the same HugeGraph source and the pinned community JNI (currently
+RocksDB API 8.10.2). It checks real native-library selection, persisted data, schema,
+indexes, continued writes and normal restart. This does not establish compatibility
+between arbitrary HugeGraph/RocksDB releases or custom native table formats. Use a
+matching version pair, retain a backup and qualify representative data. Topling
+Latest is manual and may lag standard Latest; formal Release publishes both variants
+from one Apache HugeGraph commit.
+
+For an older custom Docker deployment with data stored only in an anonymous volume
+covering the entire installation, preserve its database directories explicitly before
+changing to data-only mounts. The supplied Compose data mounts already keep these
+directories separate. See the linked deployment guides for the stop/switch/up commands.
 
 ### Standalone Server setup
 
@@ -682,9 +699,12 @@ Stop incoming work and use the component's normal stop script. PD drains its sch
 metadata work, joins Raft and closes the metadata database and native options. Do not
 use a forced kill as evidence of normal resource cleanup.
 
-To return to standard RocksDB, stop the component, unset `TOPLINGDB_ROCKSDB_PROVIDER`
-and set its business provider back to `rocksdb`. Use the corresponding standard-provider
-data directory; do not test a provider switch by reusing the other provider's database.
+To return to standard RocksDB, stop the component normally, unset
+`TOPLINGDB_ROCKSDB_PROVIDER` and set its business provider back to `rocksdb`. Keep
+the same qualified data and WAL paths when switching the default BlockBasedTable
+profile. Native profiles that produce custom SST formats need separate compatibility
+validation before returning to a standard runtime. For containers, select the
+matching unsuffixed image instead; it configures the launcher and provider together.
 
 ## Implementation navigation
 

@@ -114,11 +114,11 @@ tests:
       - isKind:
           of: Deployment
 
-  - it: rejects reusing persistent RocksDB volumes with Topling
+  - it: accepts changing runtime while keeping persistent storage
     release:
       upgrade: true
     set:
       global.runtimeVariant: topling
     asserts:
-      - failedTemplate:
-          errorPattern: "global.runtimeVariant cannot change from standard to topling"
+      - isKind:
+          of: Deployment

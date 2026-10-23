@@ -99,7 +99,18 @@ See the [complete registry example](examples/values-internal-registry.yaml).
 
 ### ToplingDB runtime
 
-Select ToplingDB for a **fresh deployment** with one value:
+Switch an existing release to ToplingDB with one value while keeping its values
+and persistent volumes:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set global.runtimeVariant=topling --wait --timeout 15m
+```
+
+Use matching standard/Topling images of the same HugeGraph version. Development
+`latest` and `latest-topling` tags are published independently and may refer to
+different source revisions; select a matching build before changing the runtime.
+For a new installation, use the same runtime parameter:
 
 ```bash
 helm install hugegraph-topling ./helm/hugegraph -n hugegraph-topling \
@@ -125,13 +136,17 @@ An explicit `image.digest` remains exact and takes priority over the derived tag
 supply the digest of the matching Topling deployment image. Explicit helper image
 overrides also remain exact.
 
-The default `global.runtimeVariant=standard` keeps RocksDB. Selecting another
-runtime does not convert existing data. Use separate empty volumes and migrate
-through graph APIs after validating the application. The chart rejects runtime
-changes on an existing persistent PD or Store release, including a return from
-ToplingDB to RocksDB. Keep the original release and volumes to return to RocksDB.
-See the [storage runtime guide](../../docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb)
-for native configuration and validation.
+The default `global.runtimeVariant=standard` keeps RocksDB. The verified stock
+RocksDB 8.10.2 and pinned community ToplingDB 8.10.2 use compatible data: the
+upgrade retains PD/Store data and Raft volumes, schema, indexes and graph records.
+Keep the release name, namespace, data paths, storage settings and credentials;
+no graph export or new release is needed. Allow normal Pod shutdown during the
+maintenance window. The same verified pair also supports returning to RocksDB:
+repeat the upgrade with `global.runtimeVariant=standard`, keeping the same PVCs.
+Use base image tags without the `-topling` suffix, or update explicit digests to
+the matching RocksDB images. See [storage runtime upgrades](docs/operations.md#storage-runtime-upgrades)
+for rollout behavior and the [storage runtime guide](../../docs/storage-lifecycle.md#storage-provider-selection-and-toplingdb)
+for the verified native versions, profile and compatibility coverage.
 
 ### Storage
 
