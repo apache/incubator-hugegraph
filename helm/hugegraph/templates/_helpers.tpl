@@ -23,6 +23,9 @@
 {{- if not (hasKey .Values "hubble") -}}
 {{- $_ := set .Values "hubble" (dict "enabled" false "service" dict "persistence" dict) -}}
 {{- end -}}
+{{- if not (hasKey .Values "seatunnel") -}}
+{{- $_ := set .Values "seatunnel" (dict "enabled" false "service" dict) -}}
+{{- end -}}
 {{- $strict := eq (.Values.mode | default "easy") "strict" -}}
 {{- $serviceType := ternary "ClusterIP" "NodePort" (or $strict $legacy) -}}
 {{- range $comp := list "server" "hubble" "seatunnel" -}}
