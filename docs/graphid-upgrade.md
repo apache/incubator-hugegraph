@@ -112,8 +112,8 @@ PD and Store data paths and endpoints for the empty target; never attach an empt
 target to the source PD or reuse the source Store identity.
 
 The example below is for a graph in the **DEFAULT GraphSpace**, without special
-state outside the export scope described below. Use a compatible HugeGraph Tools
-release; the tested source and version are listed in the validation section.
+state outside the export scope described below. Use a HugeGraph Tools
+release compatible with both source and target.
 Keep application writers stopped until export and validation finish. Keep target
 application traffic disabled until all checks pass.
 
@@ -208,7 +208,7 @@ before upgrading. Shared-prefix ownership that cannot be established and lost
 rows without backups remain recovery blockers. The preflight intentionally has
 no override that silently assigns ambiguous data.
 
-## Validation basis
+## Background and compatibility
 
 The issue and original allocation fix are documented in
 [apache/hugegraph#3224](https://github.com/apache/hugegraph/issues/3224),
@@ -218,15 +218,8 @@ upgrade documentation proposals are
 [#3330](https://github.com/apache/hugegraph/pull/3330) and
 [hugegraph-doc#523](https://github.com/apache/hugegraph-doc/pull/523).
 
-The independent test baseline uses the official 1.7.0 distribution and
-[the issue author's validation data](https://github.com/SebastianGruza/hugegraph-validation).
-The reference current Store commit is `c2ec5704332fc1102ad277d6aae6658d65c73601`;
-Tools is `apache/hugegraph-toolchain@411aca3389dd610d9a4f3b3595f06a53ee67e2ff`.
-The author's script creates 29 vertices and 63 edges. The experiment adds five
-custom-ID vertices after a snapshot, giving the 34-vertex/63-edge baseline, and
-reuses its 16 queries. Comparison includes full IDs, properties and edge endpoints. Two partitions were exercised with both one Store and three Store
-replicas. See the change's test report for the exact completed upgrade, restart
-and fault scenarios; native unit tests are distinct from those cluster runs.
+The issue author's [reference data](https://github.com/SebastianGruza/hugegraph-validation)
+is available with the original report.
 
 This fix adds no second read/write format, GraphID allocator rule, Raft command
 or recurring scan to normal requests. It does not establish general rolling
