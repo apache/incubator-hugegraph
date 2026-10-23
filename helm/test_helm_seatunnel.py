@@ -16,6 +16,7 @@
 
 """Check native hybrid deployment, release isolation, connectivity and packaging."""
 
+import base64
 from pathlib import Path
 import shutil
 import subprocess
@@ -44,6 +45,19 @@ def pod(workload):
     return workload["spec"]["template"]
 
 
+def engine_auth_secret(documents):
+    return next(doc for doc in engine_resources(documents, "Secret")
+                if "seatunnel.yaml" in doc.get("data", {}))
+
+
+def engine_config(documents):
+    data = {}
+    for doc in engine_resources(documents, "ConfigMap"):
+        data.update(doc["data"])
+    data["seatunnel.yaml"] = base64.b64decode(engine_auth_secret(documents)["data"]["seatunnel.yaml"]).decode()
+    return data
+
+
 class SeaTunnelChartTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -58,19 +72,22 @@ class SeaTunnelChartTest(unittest.TestCase):
         except subprocess.TimeoutExpired as error:
             self.fail(f"{' '.join(command)} timed out after {timeout} seconds: {error}")
 
-    def render(self, seatunnel=None, chart=CHART, namespace="default", **values):
+    def render(self, seatunnel=None, chart=CHART, namespace="default", release="fixture", **values):
         if seatunnel is not None:
             values["seatunnel"] = {"enabled": True, **seatunnel}
+            # Keep independent render comparisons deterministic; generation is tested separately.
+            values["seatunnel"]["auth"] = {"password": "native-test-admin-password",
+                                           **seatunnel.get("auth", {})}
         with tempfile.TemporaryDirectory(prefix="seatunnel-values-") as directory:
             configuration = Path(directory) / "values.yaml"
             configuration.write_text(yaml.safe_dump(values))
-            result = self.run_helm(["template", "fixture", str(chart),
+            result = self.run_helm(["template", release, str(chart),
                                     "--namespace", namespace, "-f", str(configuration)],
                                    HELM_TEMPLATE_TIMEOUT_SECONDS)
         return result
 
-    def documents(self, seatunnel=None, chart=CHART, namespace="default", **values):
-        result = self.render(seatunnel, chart=chart, namespace=namespace, **values)
+    def documents(self, seatunnel=None, chart=CHART, namespace="default", release="fixture", **values):
+        result = self.render(seatunnel, chart=chart, namespace=namespace, release=release, **values)
         self.assertEqual(0, result.returncode, result.stderr)
         return [doc for doc in yaml.safe_load_all(result.stdout) if doc]
 
@@ -91,7 +108,7 @@ class SeaTunnelChartTest(unittest.TestCase):
             launch = " ".join(container.get("command", []) + container.get("args", []))
             self.assertIn("/opt/seatunnel/bin/seatunnel-cluster.sh", launch)
             self.assertNotIn(" -r ", launch)
-            data = engine_resources(documents, "ConfigMap")[0]["data"]
+            data = engine_config(documents)
             engine = yaml.safe_load(data["seatunnel.yaml"])["seatunnel"]["engine"]
             self.assertEqual(backups, engine["backup-count"])
             self.assertTrue(engine["http"]["enable-http"])
@@ -120,7 +137,7 @@ class SeaTunnelChartTest(unittest.TestCase):
             for other in documents:
                 if other["kind"] in ("Deployment", "StatefulSet") and other is not workload:
                     self.assertFalse(matches(selector, pod(other)["metadata"]["labels"]))
-        data = engine_resources(documents, "ConfigMap")[0]["data"]
+        data = engine_config(documents)
         discovery = yaml.safe_load(data["hazelcast.yaml"])["hazelcast"]["network"]["join"]["kubernetes"]
         self.assertTrue(discovery["enabled"])
         self.assertTrue(discovery["service-dns"].startswith(headless["metadata"]["name"] + ".graphs.svc"))
@@ -134,6 +151,150 @@ class SeaTunnelChartTest(unittest.TestCase):
         client = yaml.safe_load(data["hazelcast-client.yaml"])["hazelcast-client"]
         self.assertIn(discovery["service-dns"] + ":5801", client["network"]["cluster-members"])
         self.assertFalse(any(doc["kind"] in ("Role", "RoleBinding") for doc in engine_resources(documents)))
+
+    def test_http_entry_inherits_mode_and_preserves_explicit_service_settings(self):
+        for mode, service_type in (("easy", "NodePort"), ("strict", "ClusterIP")):
+            with self.subTest(mode=mode):
+                documents = self.documents({}, mode=mode)
+                api, = [doc for doc in engine_resources(documents, "Service")
+                        if doc["spec"].get("clusterIP") != "None"]
+                self.assertEqual(service_type, api["spec"]["type"])
+                self.assertNotIn("nodePort", api["spec"]["ports"][0])
+        for mode, service in (("easy", {"type": "ClusterIP"}),
+                              ("strict", {"type": "NodePort", "nodePort": 31081})):
+            with self.subTest(mode=mode, service=service):
+                documents = self.documents({"service": service}, mode=mode)
+                headless, = [doc for doc in engine_resources(documents, "Service")
+                             if doc["spec"].get("clusterIP") == "None"]
+                api, = [doc for doc in engine_resources(documents, "Service") if doc is not headless]
+                self.assertEqual(service["type"], api["spec"]["type"])
+                if "nodePort" in service:
+                    self.assertEqual(service["nodePort"], api["spec"]["ports"][0]["nodePort"])
+                self.assertNotIn("nodePort", headless["spec"]["ports"][0])
+        result = self.render({"service": {"type": "ClusterIP", "nodePort": 31081}})
+        self.assertNotEqual(0, result.returncode)
+
+    def test_local_graph_defaults_follow_rendered_server_and_admin_secret(self):
+        documents = self.documents({}, namespace="graphs", release="fixture-" + "r" * 40,
+                                   fullnameOverride="graph-copy-" + "n" * 55,
+                                   server={"port": 8182, "graphSpace": "tenant_a"})
+        server, = [doc for doc in documents if doc["kind"] == "Service"
+                   and doc["metadata"]["labels"].get("app.kubernetes.io/component") == "server"
+                   and doc["spec"].get("clusterIP") != "None"]
+        server_workload, = [doc for doc in documents if doc["kind"] == "Deployment"
+                            and doc["metadata"]["labels"].get("app.kubernetes.io/component") == "server"]
+        server_container = next(entry for entry in pod(server_workload)["spec"]["containers"]
+                                if entry["name"] == "server")
+        server_password = next(entry["valueFrom"] for entry in server_container["env"]
+                               if entry["name"] == "PASSWORD")
+        workload, = engine_resources(documents, "StatefulSet")
+        container, = pod(workload)["spec"]["containers"]
+        env = {entry["name"]: entry for entry in container["env"]}
+        self.assertEqual(server["metadata"]["name"] + ".graphs.svc", env["HG_HOST"]["value"])
+        self.assertEqual(str(server["spec"]["ports"][0]["port"]), env["HG_PORT"]["value"])
+        self.assertEqual("http", env["HG_PROTOCOL"]["value"])
+        self.assertEqual("tenant_a", env["HG_GRAPH_SPACE"]["value"])
+        self.assertEqual("graph_a", env["HG_GRAPH_NAME"]["value"])
+        self.assertEqual("admin", env["HG_USERNAME"]["value"])
+        self.assertEqual(server_password, env["HG_PASSWORD"]["valueFrom"])
+
+    def test_existing_admin_secret_and_disabled_auth_reach_local_graph_environment(self):
+        cases = (({"enabled": True, "admin": {"existingSecret": "graph-admin", "key": "admin-pass"}},
+                  {"name": "HG_PASSWORD", "valueFrom": {
+                      "secretKeyRef": {"name": "graph-admin", "key": "admin-pass"}}}),
+                 ({"enabled": False}, {"name": "HG_PASSWORD", "value": ""}))
+        for auth, password in cases:
+            with self.subTest(auth=auth):
+                documents = self.documents({}, server={"auth": auth}, hubble={"enabled": False})
+                workload, = engine_resources(documents, "StatefulSet")
+                container, = pod(workload)["spec"]["containers"]
+                self.assertIn(password, container["env"])
+
+    def test_explicit_environment_overrides_defaults_without_duplicate_names(self):
+        overrides = [{"name": "HG_HOST", "value": "external-graph.example.com"},
+                     {"name": "HG_PORT", "value": "8443"},
+                     {"name": "HG_PROTOCOL", "value": "https"},
+                     {"name": "HG_GRAPH_SPACE", "value": "other"},
+                     {"name": "HG_GRAPH_NAME", "value": "existing_graph"},
+                     {"name": "HG_USERNAME", "value": "writer"},
+                     {"name": "HG_PASSWORD", "valueFrom": {
+                         "secretKeyRef": {"name": "writer-auth", "key": "password"}}},
+                     {"name": "TZ", "value": "UTC"}]
+        documents = self.documents({"env": overrides})
+        workload, = engine_resources(documents, "StatefulSet")
+        container, = pod(workload)["spec"]["containers"]
+        env = {entry["name"]: entry for entry in container["env"]}
+        self.assertEqual(len(env), len(container["env"]))
+        for expected in overrides:
+            self.assertEqual(expected, env[expected["name"]])
+
+    def test_demo_jobs_are_mounted_and_keep_credentials_as_placeholders(self):
+        password = "render-test-password"
+        documents = self.documents({}, server={"auth": {"admin": {"password": password}}})
+        configmaps = engine_resources(documents, "ConfigMap")
+        jobs = {doc["metadata"]["name"]: doc["data"] for doc in configmaps
+                if any(filename.endswith(".conf") for filename in doc["data"])}
+        self.assertEqual(2, sum(filename.endswith(".conf") for data in jobs.values() for filename in data))
+        workload, = engine_resources(documents, "StatefulSet")
+        spec = pod(workload)["spec"]
+        container, = spec["containers"]
+        for configmap_name, data in jobs.items():
+            volume_names = {volume["name"] for volume in spec["volumes"]
+                            if volume.get("configMap", {}).get("name") == configmap_name}
+            self.assertTrue(volume_names)
+            mounts = [mount for mount in container["volumeMounts"] if mount["name"] in volume_names]
+            self.assertTrue(mounts)
+            for filename, content in data.items():
+                if filename.endswith(".conf"):
+                    self.assertTrue(any(mount["mountPath"] == "/opt/seatunnel/config/" + filename
+                                        for mount in mounts))
+                    for name in ("HG_HOST", "HG_PORT", "HG_PROTOCOL", "HG_GRAPH_SPACE", "HG_GRAPH_NAME",
+                                 "HG_USERNAME", "HG_PASSWORD"):
+                        self.assertIn("${" + name + "}", content)
+        for data in (doc["data"] for doc in configmaps):
+            self.assertFalse(any(password in content for content in data.values()))
+
+    def test_seatunnel_admin_is_generated_separately_and_kept_out_of_public_configuration(self):
+        graph_password = "graph-only-admin-password"
+        documents = self.documents({"auth": {"password": ""}},
+                                   server={"auth": {"admin": {"password": graph_password}}})
+        secret = engine_auth_secret(documents)
+        username = base64.b64decode(secret["data"]["username"]).decode()
+        password = base64.b64decode(secret["data"]["password"]).decode()
+        self.assertEqual("admin", username)
+        self.assertGreaterEqual(len(password), 32)
+        self.assertNotEqual(graph_password, password)
+        http = yaml.safe_load(engine_config(documents)["seatunnel.yaml"])["seatunnel"]["engine"]["http"]
+        self.assertTrue(http["enable-basic-auth"])
+        self.assertEqual(username, http["basic-auth-username"])
+        self.assertEqual(password, http["basic-auth-password"])
+        for configmap in engine_resources(documents, "ConfigMap"):
+            self.assertNotIn("seatunnel.yaml", configmap["data"])
+            self.assertNotIn(password, yaml.safe_dump(configmap["data"]))
+        workload, = engine_resources(documents, "StatefulSet")
+        self.assertNotIn(password, yaml.safe_dump(pod(workload)))
+        volumes = {volume["name"] for volume in pod(workload)["spec"]["volumes"]
+                   if volume.get("secret", {}).get("secretName") == secret["metadata"]["name"]}
+        container, = pod(workload)["spec"]["containers"]
+        self.assertTrue(any(mount["name"] in volumes
+                            and mount["mountPath"] == "/opt/seatunnel/config/seatunnel.yaml"
+                            for mount in container["volumeMounts"]))
+
+    def test_native_basic_auth_preserves_special_credentials_and_cannot_be_disabled_by_config(self):
+        username = "ops'\"\\$"
+        password = "quote'\" backslash\\ dollar$ colon:"
+        native = {"seatunnel": {"engine": {"backup-count": 0, "http": {
+            "enable-http": True, "port": 8080, "enable-basic-auth": False,
+            "basic-auth-username": "ignored-user", "basic-auth-password": "ignored-password"}}}}
+        documents = self.documents({"auth": {"username": username, "password": password},
+                                    "config": {"seatunnel.yaml": yaml.safe_dump(native)}})
+        secret = engine_auth_secret(documents)
+        self.assertEqual(username, base64.b64decode(secret["data"]["username"]).decode())
+        self.assertEqual(password, base64.b64decode(secret["data"]["password"]).decode())
+        http = yaml.safe_load(engine_config(documents)["seatunnel.yaml"])["seatunnel"]["engine"]["http"]
+        self.assertTrue(http["enable-basic-auth"])
+        self.assertEqual(username, http["basic-auth-username"])
+        self.assertEqual(password, http["basic-auth-password"])
 
     def test_image_secret_environment_and_native_file_overrides_reach_engine(self):
         custom = {"jvm_options": "-Xms128m\n-Xmx384m\n", "log4j2.properties": "status=warn\n"}
@@ -149,7 +310,7 @@ class SeaTunnelChartTest(unittest.TestCase):
         self.assertEqual("Never", container["imagePullPolicy"])
         self.assertEqual([{"name": "registry-auth"}], spec["imagePullSecrets"])
         self.assertIn(secret_env, container["env"])
-        data = engine_resources(documents, "ConfigMap")[0]["data"]
+        data = engine_config(documents)
         mounts = {entry["subPath"] for entry in container["volumeMounts"]}
         for filename, content in custom.items():
             self.assertEqual(content, data[filename])
@@ -160,7 +321,12 @@ class SeaTunnelChartTest(unittest.TestCase):
 
     def test_invalid_enabled_mode_and_cluster_size_fail_before_install(self):
         for values in ({"mode": "invalid"}, {"mode": "cluster", "replicas": 0},
-                       {"mode": "cluster", "replicas": 1}):
+                       {"mode": "cluster", "replicas": 1},
+                       {"auth": {"username": "${user.name}"}},
+                       {"auth": {"password": "${user.name}"}},
+                       {"auth": {"username": " admin"}},
+                       {"auth": {"password": "password "}},
+                       {"auth": {"username": "admin:operator"}}):
             with self.subTest(values=values):
                 self.assertNotEqual(0, self.render(values).returncode)
 

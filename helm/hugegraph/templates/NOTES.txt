@@ -62,10 +62,52 @@ Access:
 {{- if (.Values.seatunnel | default dict).enabled }}
 
   SeaTunnel:
-    In-cluster API: http://{{ include "hugegraph.seatunnel.name" . }}.{{ .Release.Namespace }}.svc:8080
-    Port-forward: kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "hugegraph.seatunnel.name" . }} 8081:8080
-    Web UI: http://localhost:8081/#/overview
-    Connector images, credentials and checkpoint storage: helm/hugegraph/docs/seatunnel.md
+{{- $stName := include "hugegraph.seatunnel.name" . }}
+{{- $stService := .Values.seatunnel.service | default dict }}
+    集群内 API: http://{{ $stName }}.{{ .Release.Namespace }}.svc:8080
+{{- if eq $stService.type "NodePort" }}
+    HTTP NodePort:
+      kubectl get svc -n {{ .Release.Namespace }} {{ $stName }} -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}{"\n"}'
+      kubectl get nodes -o wide
+    前端: http://<可达节点IP>:{{ $stService.nodePort | default "<nodePort>" }}/#/overview
+    API: http://<可达节点IP>:{{ $stService.nodePort | default "<nodePort>" }}
+{{- else if eq $stService.type "LoadBalancer" }}
+    负载均衡地址:
+      kubectl get svc -n {{ .Release.Namespace }} {{ $stName }} -o wide
+      kubectl get svc -n {{ .Release.Namespace }} {{ $stName }} -o jsonpath='{.status.loadBalancer.ingress}{"\n"}'
+    地址分配后访问前端 http://<负载均衡地址>:8080/#/overview，API 使用同一 HTTP 地址。
+{{- else }}
+    HTTP Service 为 ClusterIP；集群外访问可使用下方端口转发。
+{{- end }}
+    所有 Service 类型均可端口转发:
+      kubectl port-forward -n {{ .Release.Namespace }} svc/{{ $stName }} 8081:8080
+    本机前端: http://127.0.0.1:8081/#/overview
+    本机 API: http://127.0.0.1:8081
+    Hazelcast 5801 仅用于集群内部发现及 CLI 通信，不通过以上外部入口公开。
+    前端、静态资源和 REST 提交接口使用独立 SeaTunnel 账号的 HTTP Basic 认证。
+    以下命令读取凭据到本机变量，不在安装输出中显示密码:
+      ST_USERNAME="$(kubectl get secret -n {{ .Release.Namespace }} {{ $stName }}-auth -o jsonpath='{.data.username}' | base64 --decode)"
+      ST_PASSWORD="$(kubectl get secret -n {{ .Release.Namespace }} {{ $stName }}-auth -o jsonpath='{.data.password}' | base64 --decode)"
+    浏览器 Basic 登录使用此 Secret 中的账号密码；保持端口转发后可验证 REST:
+      curl --user "${ST_USERNAME}:${ST_PASSWORD}" http://127.0.0.1:8081/overview
+    该入口账号独立于 HugeGraph 连接器账号；关闭 HugeGraph 认证也不会关闭 SeaTunnel 入口认证。
+    内部 CLI/5801 不经 HTTP Basic，仅在可信 Kubernetes/RBAC 范围使用，外部提交走受保护的 REST。
+    默认凭据随在线 Helm 升级保留；轮换用受控 values 的 seatunnel.auth.password，再 helm upgrade。
+    GitOps/template-only 渲染请显式固定密码；认证 Secret 在禁用或卸载后仍保留。
+    账号、轮换及作业说明: helm/hugegraph/docs/seatunnel.md
+{{- if and .Values.networkPolicy.enabled (has $stService.type (list "NodePort" "LoadBalancer")) }}
+{{- $stRules := get .Values.networkPolicy "seatunnel" | default dict }}
+{{- if empty (get $stRules "extraIngress") }}
+    NetworkPolicy 已开启；外部 HTTP 调用方还需通过 networkPolicy.seatunnel.extraIngress 允许。
+{{- end }}
+{{- end }}
+
+    同 release 演示作业:
+      已注入 Server 地址、端口、图空间及凭据引用，示例配置已挂载，无需上传临时文件。
+      先创建目标图（默认 {{ .Values.server.graphSpace }}/graph_a；HG_* 显式覆盖时以覆盖值为准），再手动提交:
+      kubectl exec -n {{ .Release.Namespace }} sts/{{ $stName }} -- /opt/seatunnel/bin/seatunnel.sh --master cluster --config /opt/seatunnel/config/hugegraph-sink.conf
+      kubectl exec -n {{ .Release.Namespace }} sts/{{ $stName }} -- /opt/seatunnel/bin/seatunnel.sh --master cluster --config /opt/seatunnel/config/hugegraph-source.conf
+      Helm 不自动建图或执行作业；跨环境 clone 仍需用户提供 HG_SOURCE_* / HG_TARGET_*。
 {{- end }}
 {{- range $component := list "server" "hubble" "pd" }}
 {{- if or (ne $component "hubble") $hubbleEnabled }}

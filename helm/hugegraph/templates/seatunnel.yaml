@@ -48,6 +48,9 @@ Use its DNS discovery alternative, so Kubernetes API RBAC is unnecessary.
 {{- $_ := set $data "seatunnel.yaml" ($engine | toYaml) -}}
 {{/* The upstream script appends jvm_options after JAVA_OPTS; set heap in that file. */}}
 {{- $_ := set $data "jvm_options" (.Values.seatunnel.javaOpts | replace " " "\n") -}}
+{{- range $path, $_ := .Files.Glob "examples/seatunnel/hugegraph-*.conf" -}}
+{{- $_ := set $data (base $path) ($.Files.Get $path) -}}
+{{- end -}}
 {{- range $filename, $content := .Values.seatunnel.config -}}
 {{- $_ := set $data $filename $content -}}
 {{- end -}}
@@ -58,7 +61,27 @@ Use its DNS discovery alternative, so Kubernetes API RBAC is unnecessary.
 {{- include "hugegraph.resolveValues" . }}
 {{- include "hugegraph.validateValues" . }}
 {{- $name := include "hugegraph.seatunnel.name" . }}
-{{- $config := include "hugegraph.seatunnel.config" . | fromYaml }}
+{{- $config := omit (include "hugegraph.seatunnel.config" . | fromYaml) "seatunnel.yaml" }}
+{{- $svc := .Values.seatunnel.service }}
+{{- $env := list
+  (dict "name" "SEATUNNEL_HOME" "value" "/opt/seatunnel")
+  (dict "name" "HG_HOST" "value" (printf "%s.%s.svc" (include "hugegraph.server.name" .) .Release.Namespace))
+  (dict "name" "HG_PORT" "value" (.Values.server.port | toString))
+  (dict "name" "HG_PROTOCOL" "value" "http")
+  (dict "name" "HG_USERNAME" "value" "admin")
+  (dict "name" "HG_GRAPH_SPACE" "value" .Values.server.graphSpace)
+  (dict "name" "HG_GRAPH_NAME" "value" "graph_a") }}
+{{- $password := dict "name" "HG_PASSWORD" "value" "" }}
+{{- if .Values.server.auth.enabled }}
+{{- $password = dict "name" "HG_PASSWORD" "valueFrom" (dict "secretKeyRef" (dict
+  "name" (include "hugegraph.server.authSecretName" .)
+  "key" (include "hugegraph.server.authSecretKey" .))) }}
+{{- end }}
+{{- $env = append $env $password }}
+{{- $overrides := dict }}
+{{- range .Values.seatunnel.env }}
+{{- $_ := set $overrides .name true }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -94,12 +117,29 @@ metadata:
   labels:
     {{- include "hugegraph.labels" . | nindent 4 }}
     app.kubernetes.io/component: seatunnel
+  {{- with $svc.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 spec:
-  type: ClusterIP
+  type: {{ $svc.type }}
+  {{- range $field := list "externalTrafficPolicy" "loadBalancerClass" "loadBalancerIP" "loadBalancerSourceRanges" "externalIPs" }}
+  {{- with get $svc $field }}
+  {{ $field }}: {{ toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  {{- if hasKey $svc "allocateLoadBalancerNodePorts" }}
+  {{- if ne (get $svc "allocateLoadBalancerNodePorts") nil }}
+  allocateLoadBalancerNodePorts: {{ $svc.allocateLoadBalancerNodePorts }}
+  {{- end }}
+  {{- end }}
   ports:
     - name: http
       port: 8080
       targetPort: http
+      {{- with $svc.nodePort }}
+      nodePort: {{ . }}
+      {{- end }}
   selector:
     {{- include "hugegraph.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: seatunnel
@@ -126,6 +166,7 @@ spec:
         app.kubernetes.io/component: seatunnel
       annotations:
         checksum/config: {{ $config | toYaml | sha256sum }}
+        checksum/auth: {{ include "hugegraph.seatunnel.engineConfig" . | sha256sum }}
     spec:
       automountServiceAccountToken: false
       terminationGracePeriodSeconds: 120
@@ -140,8 +181,11 @@ spec:
           # The default upstream role is hybrid; an explicit -r is unnecessary.
           command: ["/opt/seatunnel/bin/seatunnel-cluster.sh"]
           env:
-            - name: SEATUNNEL_HOME
-              value: /opt/seatunnel
+            {{- range $env }}
+            {{- if not (hasKey $overrides .name) }}
+            {{- toYaml (list .) | nindent 12 }}
+            {{- end }}
+            {{- end }}
             {{- with .Values.seatunnel.env }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -174,12 +218,21 @@ spec:
               exec:
                 command: ["/opt/seatunnel/bin/stop-seatunnel-cluster.sh"]
           volumeMounts:
+            - name: seatunnel-auth
+              mountPath: /opt/seatunnel/config/seatunnel.yaml
+              subPath: seatunnel.yaml
             {{- range $filename, $_ := $config }}
             - name: seatunnel-configs
               mountPath: /opt/seatunnel/config/{{ $filename }}
               subPath: {{ $filename }}
             {{- end }}
       volumes:
+        - name: seatunnel-auth
+          secret:
+            secretName: {{ include "hugegraph.seatunnel.authSecretName" . }}
+            items:
+              - key: seatunnel.yaml
+                path: seatunnel.yaml
         - name: seatunnel-configs
           configMap:
             name: {{ $name }}-configs

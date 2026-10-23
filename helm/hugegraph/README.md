@@ -83,11 +83,16 @@ Inactive credential values may remain in the values file when auth is disabled.
 
 ### 可选 SeaTunnel
 
-增加 `--set seatunnel.enabled=true`，与 HugeGraph 一起启动一个 SeaTunnel 混合节点；
-增加 `--set seatunnel.mode=cluster`，切换为多个 hybrid 节点（默认两个），复用同一套官方原生 Kubernetes 资源。
-默认关闭，SeaTunnel 拓扑独立于 HugeGraph 的单机/集群预设和 `easy/strict` 访问模式。
-引擎同时提供内置任务可视化前端。启动、凭据、直接导入 Graph 及 Graph A → Graph B 复制示例见
-[SeaTunnel 联合部署指南](docs/seatunnel.md)。
+增加 `--set seatunnel.enabled=true`，与 HugeGraph 一起启动一个常驻 hybrid 节点；
+增加 `--set seatunnel.mode=cluster`，使用同一套官方原生 Kubernetes 资源扩为多个节点（默认两个）。
+SeaTunnel 默认关闭，拓扑独立于 HugeGraph 的单机/集群预设。两种模式均提供引擎内置的任务可视化前端；
+HTTP 入口继承 `easy` 的 NodePort 或 `strict` 的 ClusterIP/NetworkPolicy，可用 `seatunnel.service` 显式覆盖并指定 NodePort。
+
+Chart 自动为同 release 的演示作业注入 Server 地址、图空间和管理员 Secret 引用，
+并挂载 Source/Sink 配置；先创建目标图，即可手动提交，无需复制密码或上传作业文件。
+Helm 不自动建图或导入数据。前端和 REST 提交接口使用独立管理员的原生 HTTP Basic 认证，
+默认密码自动生成在 SeaTunnel Secret 中并随升级保留；它与作业连接 HugeGraph 的凭据分别配置。
+启动、访问、演示作业与跨环境 Schema／顶点／边复制见 [SeaTunnel 联合部署指南](docs/seatunnel.md)。
 
 ### Internal image registry
 

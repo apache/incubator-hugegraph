@@ -25,7 +25,7 @@
 {{- end -}}
 {{- $strict := eq (.Values.mode | default "easy") "strict" -}}
 {{- $serviceType := ternary "ClusterIP" "NodePort" (or $strict $legacy) -}}
-{{- range $comp := list "server" "hubble" -}}
+{{- range $comp := list "server" "hubble" "seatunnel" -}}
 {{- $component := get $.Values $comp -}}
 {{- $svc := get $component "service" | default dict -}}
 {{- $_ := set $component "service" $svc -}}
@@ -743,6 +743,18 @@ Cross-field validation that JSON Schema draft-07 cannot express.
 {{- end -}}
 
 {{- include "hugegraph.resolveValues" . -}}
+{{- if (.Values.seatunnel | default dict).enabled -}}
+{{- $svc := .Values.seatunnel.service -}}
+{{- if and (get $svc "nodePort") (not (has $svc.type (list "NodePort" "LoadBalancer"))) -}}
+{{- fail "seatunnel.service.nodePort requires seatunnel.service.type to be NodePort or LoadBalancer" -}}
+{{- end -}}
+{{- range $key := list "username" "password" -}}
+{{- $value := get $.Values.seatunnel.auth $key | default "" -}}
+{{- if or (ne $value (trim $value)) (contains "${" $value) -}}
+{{- fail (printf "seatunnel.auth.%s cannot contain ${...} placeholders or leading/trailing whitespace: native Engine YAML expands or trims them" $key) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- $startupBudget := include "hugegraph.server.startupProbeBudget" . | int -}}
 {{- if lt $startupBudget (add (int .Values.server.storageWaitTimeoutSeconds) 120) -}}
 {{- fail "server.probes.startup.failureThreshold and periodSeconds must leave at least server.storageWaitTimeoutSeconds + 120 seconds to wait for storage and start Server; increase the probe budget or reduce server.storageWaitTimeoutSeconds" -}}

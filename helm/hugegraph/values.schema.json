@@ -76,6 +76,23 @@
         "replicas": {
           "type": "integer",
           "minimum": 1
+        },
+        "service": {
+          "$ref": "#/definitions/service"
+        },
+        "auth": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "username": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^:]+$"
+            },
+            "password": {
+              "type": "string"
+            }
+          }
         }
       }
     }
