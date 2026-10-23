@@ -23,10 +23,13 @@
 {{- if not (hasKey .Values "hubble") -}}
 {{- $_ := set .Values "hubble" (dict "enabled" false "service" dict "persistence" dict) -}}
 {{- end -}}
+{{- if not (hasKey .Values "seatunnel") -}}
+{{- $_ := set .Values "seatunnel" (dict "enabled" false "service" dict) -}}
+{{- end -}}
 {{- $strict := eq (.Values.mode | default "easy") "strict" -}}
 {{- $serviceType := ternary "ClusterIP" "NodePort" (or $strict $legacy) -}}
 {{- range $comp := list "server" "hubble" "seatunnel" -}}
-{{- $component := get $.Values $comp | default dict -}}
+{{- $component := get $.Values $comp -}}
 {{- $svc := get $component "service" | default dict -}}
 {{- $_ := set $component "service" $svc -}}
 {{- $typeInherited := or (not (hasKey $svc "type")) (eq (get $svc "type" | toString) "<nil>") -}}
@@ -49,7 +52,7 @@
 {{- if contains "://" $registry -}}{{- fail "global.imageRegistry must be a registry host/path without http:// or https://" -}}{{- end -}}
 {{- if $registry -}}
 {{- range $comp := list "pd" "store" "server" "hubble" "seatunnel" -}}
-{{- $image := get (get $.Values $comp | default dict) "image" | default dict -}}
+{{- $image := get (get $.Values $comp) "image" | default dict -}}
 {{- if $image -}}
 {{- $_ := set $image "repository" (include "hugegraph.registryImage" (dict "reference" $image.repository "registry" $registry)) -}}
 {{- end -}}
