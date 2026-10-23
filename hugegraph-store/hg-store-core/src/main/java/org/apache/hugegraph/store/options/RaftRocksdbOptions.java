@@ -43,6 +43,8 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class RaftRocksdbOptions {
 
+    static final long RAFT_LOG_WRITE_BUFFER_SIZE = 256 * SizeUnit.MB;
+
     private static RocksdbConfig rocksdbConfig = null;
     private static boolean raftRocksdbConfigRegistered = false;
 
@@ -82,12 +84,7 @@ public class RaftRocksdbOptions {
             StorageOptionsFactory.registerRocksDBTableFormatConfig(RocksDBLogStorage.class,
                                                                    tableConfig);
 
-            DBOptions dbOptions = StorageOptionsFactory.getDefaultRocksDBOptions();
-            dbOptions.setEnv(rocksdbConfig.getEnv());
-
-            // raft rocksdb number is fixed, can be controlled by max_write_buffer_number
-            //dbOptions.setWriteBufferManager(rocksdbConfig.getBufferManager());
-            dbOptions.setUnorderedWrite(true);
+            DBOptions dbOptions = raftLogDBOptions(rocksdbConfig.getEnv(), blockCache);
             StorageOptionsFactory.registerRocksDBOptions(RocksDBLogStorage.class,
                                                          dbOptions);
 
@@ -105,6 +102,23 @@ public class RaftRocksdbOptions {
 
             raftRocksdbConfigRegistered = true;
         }
+    }
+
+    /**
+     * Options for the raft log DBs. JRaft gives every log storage a copy of these, and a
+     * copy keeps the same WriteBufferManager, so all groups share one memtable cap.
+     */
+    static DBOptions raftLogDBOptions(Env env, Cache blockCache) {
+        DBOptions dbOptions = StorageOptionsFactory.getDefaultRocksDBOptions();
+        dbOptions.setEnv(env);
+        // Each partition's raft group opens its own log DB, so without a shared manager the
+        // log memtables grow with the partition count. Charging them to the log block cache
+        // makes them take room from its 1 GiB, which RocksdbMemoryBudget.RESERVED already
+        // counts, instead of adding to it
+        dbOptions.setWriteBufferManager(new WriteBufferManager(RAFT_LOG_WRITE_BUFFER_SIZE,
+                                                               blockCache));
+        dbOptions.setUnorderedWrite(true);
+        return dbOptions;
     }
 
     public static void initRocksdbGlobalConfig(Map<String, Object> config) {
