@@ -84,7 +84,9 @@ helm upgrade hugegraph ./helm/hugegraph -n hugegraph -f my-values.yaml \
 
 ## SeaTunnel 入口认证
 
-前端、静态资源和 REST 提交接口默认使用引擎原生 HTTP Basic 认证，不新增认证代理或独立登录服务。SeaTunnel 使用独立入口管理员：`seatunnel.auth.username` 默认为 `admin`；密码未显式设置时，Chart 自动生成强密码并保存在 `<SeaTunnel资源名>-auth` Secret，升级时复用已有密码。也可通过受控 values 文件显式设置 `seatunnel.auth.username/password`，用于自定义账号或轮换。自定义值不能有首尾空白或 `${...}` 占位符；内部空格和引号仍可使用。只做离线模板或 GitOps 渲染时，应显式固定 `seatunnel.auth.password`；默认密码的升级复用依赖在线 Helm lookup。
+前端、静态资源和 REST 提交接口默认使用引擎原生 HTTP Basic 认证，不新增认证代理或独立登录服务。SeaTunnel 使用独立入口管理员：`seatunnel.auth.username` 默认为 `admin`；密码未显式设置时，Chart 自动生成强密码并保存在 `<SeaTunnel资源名>-auth` Secret，升级时复用已有密码。
+
+也可通过受控 values 文件显式设置 `seatunnel.auth.username/password`，用于自定义账号或轮换。自定义值不能有首尾空白或 `${...}` 占位符，用户名另不能包含冒号；内部空格和引号仍可使用。只做离线模板或 GitOps 渲染时，应显式固定 `seatunnel.auth.password`；默认密码的升级复用依赖在线 Helm lookup。
 
 默认 release 的 Secret 为 `hugegraph-seatunnel-auth`。保持前述端口转发，在本机读取账号和密码后调用 REST：
 
@@ -278,4 +280,40 @@ SeaTunnel 使用原始 `apache/seatunnel:3.0.0` 镜像。实际校验了 OCI 清
 
 本轮新增 SeaTunnel HTTP 入口继承 easy/strict、独立原生 HTTP Basic 认证、同 release 的 `HG_*` 默认连接信息，以及启动时挂载 Source/Sink 演示文件。上一节的原生 hybrid 基线记录验证了引擎、跨环境 Schema／点／边复制及内置 UI，不作为这些新增行为的运行验证结论。
 
-本轮增量实测结果将在完成后补充。
+2026 年 10 月 24 日（Asia/Singapore）完成增量实测。使用一套独立的 **1 PD + 1 Store + 1 Server/HStore**，先保持 SeaTunnel 关闭，再同 release 开启，随后切换 strict 双节点并轮换入口密码。为验证配置来自 Helm 实际值，使用 `fullnameOverride: bridge`、Server REST 端口 `8184`，以及外部 HugeGraph 管理员 Secret `graph-admin` 的自定义键 `credential`；SeaTunnel 未手动设置任何 `HG_*`。
+
+SeaTunnel 继续使用上节相同 digest 的官方原镜像；本轮重新下载并验证九层及配置、清单，在独立节点再次核对全部 SHA-256 和大小。HugeGraph 继续使用上节注明版本的缓存运行产物；当前分支已合入 remote master 的 `75ea5c7dc`，并另行通过全部 38 模块编译。
+
+| 项目 | 实测结果 |
+|---|---|
+| easy 真实入口 | HTTP Service 自动继承 NodePort，指定 `32080`，经真实节点端口访问；只有 HTTP 对外公开，5801 保留内部 |
+| strict 双节点 | Service 自动改为 ClusterIP、移除 NodePort，原 `32080` 入口实际不可访问；每个 Pod 均报告 Workers=2、Hazelcast Members=2，持续稳定超过一分钟 |
+| 入口认证 | 每阶段检查首页、`index.html`、真实静态资源、`/overview` 及 `POST /submit-job`；匿名、错误用户名、错误密码、HugeGraph 管理员凭据共 60 个负例全部 401，正确 SeaTunnel 凭据返回 200；SeaTunnel 凭据访问 HugeGraph 同样被拒绝 |
+| 默认连接与文件 | 自动连接 `bridge-server.<namespace>.svc:8184`，正确引用 `graph-admin/credential`；挂载的 Source/Sink 配置与仓库文件字节一致，无上传或手动补齐步骤 |
+| Source/Sink | easy 单节点、strict 双节点分别直接运行两个挂载示例，均 `FINISHED`、读 10、写 10、失败 0；Source Console 中十组姓名及年龄与图数据逐条一致 |
+| REST 提交 | 三阶段各通过带认证的 REST 提交一次 FakeSource → Console，均 `FINISHED`，读取、写入和提交计数均为 10 |
+| 升级与轮换 | 普通在线升级复用独立密码；显式轮换后旧密码 401、新密码 200，Secret UID 与用户名保留。两个引擎 Pod 滚动更新后仍稳定为双成员 |
+| HugeGraph 保持 | 启用 SeaTunnel、切换 strict 双节点和密码轮换后，原 3 个 HugeGraph Pod UID、2 个 PVC、3 个原有凭据 Secret 均未变，Pod Ready/0 重启，图仍为准确的 10 个顶点、0 条边；启用前及 strict 后原生 `helm test` 均通过 |
+| 凭据存放 | 原生认证配置与独立 Secret 一致，`seatunnel.yaml` 只从 Secret 挂载，认证 checksum 正确；SeaTunnel 密码未进入 ConfigMap、Pod 环境变量或 JVM 参数。业务及浏览器证据中的实际密码、Basic token 扫描均无泄漏 |
+
+七个实际作业的记录如下：
+
+| 阶段 | 作业 | ID | 状态 / 读写 |
+|---|---|---|---|
+| easy 单节点 | 挂载 Sink | 1166060683054284801 | FINISHED / 10、10 |
+| easy 单节点 | 挂载 Source | 1166060702146756609 | FINISHED / 10、10 |
+| easy 单节点 | REST FakeSource → Console | 1166060687785721857 | FINISHED / 10、10 |
+| strict 双节点 | 挂载 Sink | 1166061637581406210 | FINISHED / 10、10 |
+| strict 双节点 | 挂载 Source | 1166061657428852738 | FINISHED / 10、10 |
+| strict 双节点 | REST FakeSource → Console | 1166061642451255297 | FINISHED / 10、10 |
+| 轮换后双节点 | REST FakeSource → Console | 1166062548156416001 | FINISHED / 10、10 |
+
+真实 Chromium 使用新加坡时区，分别在 01:09:12、01:13:01、01:16:46 完成 easy 单节点、strict 双节点、轮换后双节点的 Basic 登录、Overview、Jobs 和 DAG 验证，Workers 分别为 1、2、2。每次选中作业的 DAG 都有两个节点、一条连接，页面显示读写各 10；累计 21 次关键 API、51 次静态资源响应全部 200，JS、控制台及请求错误均为 0。九张截图均人工检查，未打开可能展示作业凭据的配置页。
+
+预热时曾选择 REST 端口 `8182`，与 HugeGraph 默认 Gremlin 端口冲突；改为 `8184` 并通过原生 Helm test 后才建立资源基线。strict 后从未获放行的 Server Pod 探测 SeaTunnel 被阻断，最终成员检查改为逐引擎 Pod 本地认证访问；没有为测试扩大默认放行范围。
+
+最终本地回归为 30 项 Python 测试（含 15 项 SeaTunnel 集成）、309 项 Helm 单元测试，formatter 和最新 master 基础的 38 模块编译通过。CI 发现的旧 release values 缺少 `seatunnel` 字段兼容问题已补上空值处理，并新增真实旧 values 的安装、升级及自定义镜像仓库渲染回归。
+
+验证结束后已清理本轮专用 kind 集群、网络及卷，日志、结果和截图保留。原有测试环境的节点身份、启动时间及运行状态均未变化。
+
+验证结束后已清理本轮专用 kind 集群、网络及卷，日志、结果和截图保留。原有测试环境的节点身份、启动时间及运行状态均未变化。

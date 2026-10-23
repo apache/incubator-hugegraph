@@ -26,7 +26,7 @@
 {{- $strict := eq (.Values.mode | default "easy") "strict" -}}
 {{- $serviceType := ternary "ClusterIP" "NodePort" (or $strict $legacy) -}}
 {{- range $comp := list "server" "hubble" "seatunnel" -}}
-{{- $component := get $.Values $comp -}}
+{{- $component := get $.Values $comp | default dict -}}
 {{- $svc := get $component "service" | default dict -}}
 {{- $_ := set $component "service" $svc -}}
 {{- $typeInherited := or (not (hasKey $svc "type")) (eq (get $svc "type" | toString) "<nil>") -}}
@@ -49,7 +49,7 @@
 {{- if contains "://" $registry -}}{{- fail "global.imageRegistry must be a registry host/path without http:// or https://" -}}{{- end -}}
 {{- if $registry -}}
 {{- range $comp := list "pd" "store" "server" "hubble" "seatunnel" -}}
-{{- $image := get (get $.Values $comp) "image" | default dict -}}
+{{- $image := get (get $.Values $comp | default dict) "image" | default dict -}}
 {{- if $image -}}
 {{- $_ := set $image "repository" (include "hugegraph.registryImage" (dict "reference" $image.repository "registry" $registry)) -}}
 {{- end -}}
@@ -749,7 +749,7 @@ Cross-field validation that JSON Schema draft-07 cannot express.
 {{- fail "seatunnel.service.nodePort requires seatunnel.service.type to be NodePort or LoadBalancer" -}}
 {{- end -}}
 {{- range $key := list "username" "password" -}}
-{{- $value := get $.Values.seatunnel.auth $key | default "" -}}
+{{- $value := get ($.Values.seatunnel.auth | default dict) $key | default "" -}}
 {{- if or (ne $value (trim $value)) (contains "${" $value) -}}
 {{- fail (printf "seatunnel.auth.%s cannot contain ${...} placeholders or leading/trailing whitespace: native Engine YAML expands or trims them" $key) -}}
 {{- end -}}

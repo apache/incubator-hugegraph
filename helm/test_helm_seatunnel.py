@@ -96,6 +96,29 @@ class SeaTunnelChartTest(unittest.TestCase):
         self.assertEqual([], engine_resources(documents))
         self.assertFalse(any("seatunnel" in doc["metadata"]["name"] for doc in documents))
 
+    def test_legacy_release_without_seatunnel_values_still_renders(self):
+        with tempfile.TemporaryDirectory(prefix="seatunnel-legacy-") as directory:
+            chart = Path(directory) / "chart"
+            shutil.copytree(CHART, chart)
+            (chart / "values.yaml").write_bytes((CHART / "testdata/values-pre-hardening.yaml").read_bytes())
+            for arguments in ([], ["--is-upgrade"], ["--set", "global.imageRegistry=registry.example.com"]):
+                with self.subTest(arguments=arguments):
+                    result = self.run_helm(["template", "legacy", str(chart), *arguments],
+                                           HELM_TEMPLATE_TIMEOUT_SECONDS)
+                    self.assertEqual(0, result.returncode, result.stderr)
+                    documents = [doc for doc in yaml.safe_load_all(result.stdout) if doc]
+                    self.assertEqual([], engine_resources(documents))
+            # An earlier enabled release also predates the entry/auth fields.
+            previous = yaml.safe_load((CHART / "values.yaml").read_text())
+            previous["seatunnel"]["enabled"] = True
+            for field in ("service", "auth"):
+                previous["seatunnel"].pop(field)
+            (chart / "values.yaml").write_text(yaml.safe_dump(previous))
+            documents = self.documents(chart=chart)
+            http = yaml.safe_load(engine_config(documents)["seatunnel.yaml"])["seatunnel"]["engine"]["http"]
+            self.assertTrue(http["enable-basic-auth"])
+            self.assertEqual("admin", http["basic-auth-username"])
+
     def test_modes_share_one_native_hybrid_workload_and_services(self):
         modes = [self.documents({}), self.documents({"mode": "cluster", "replicas": 3})]
         workloads = []
