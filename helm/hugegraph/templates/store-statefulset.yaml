@@ -76,10 +76,8 @@ spec:
       topologySpreadConstraints:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.store.podSecurityContext }}
       securityContext:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- include "hugegraph.dataPodSecurityContext" .Values.store.podSecurityContext | nindent 8 }}
       {{- if .Values.store.affinity }}
       affinity:
         {{- toYaml .Values.store.affinity | nindent 8 }}

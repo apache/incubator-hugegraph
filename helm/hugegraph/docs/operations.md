@@ -95,6 +95,24 @@ Inspect saved values before upgrading. `--reuse-values` preserves old effective
 settings, including disabled Hubble, ClusterIP and explicit helper images.
 Adopt new defaults only with reviewed values and `--reset-values`.
 
+PD, Store and Server images built from this version run as UID/GID `10001`. PD
+and Store need `podSecurityContext.fsGroup: 10001` to write PVCs created by older
+root images; the chart applies it unless `fsGroup` is set, including under
+`--reuse-values` (see [Upgrade and verify](../README.md#upgrade-and-verify)). With
+`fsGroupChangePolicy: OnRootMismatch` the kubelet fixes ownership only when the
+volume root does not match, so switch to the `10001` images in the same rollout
+that first applies `fsGroup`. If the release ran a root image after `fsGroup`
+was already set, files that image created can stay unwritable: roll out the
+first `10001` image with `fsGroupChangePolicy: Always` (update or clear a reused
+`image.digest`, which wins over `image.tag`), then set it back to
+`OnRootMismatch` explicitly, because `--reuse-values` keeps it (see
+[Upgrade and verify](../README.md#upgrade-and-verify)), or change the owner once
+with `chown -R 10001:10001`. Volumes
+whose CSI driver ignores `fsGroup` (for example many NFS drivers) and
+`hostPath` volumes need that `chown` too.
+Restricted Pod Security also needs `securityContext.runAsNonRoot: true`, which
+is safe only with images from this version.
+
 PD/Store PVC size and StorageClass live in StatefulSet claim templates and are
 not routine mutable settings. For capacity growth, the StorageClass must support
 expansion: resize each PVC, wait for completion, then coordinate an orphaned

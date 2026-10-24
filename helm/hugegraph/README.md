@@ -246,7 +246,62 @@ helm test hugegraph -n hugegraph --logs --timeout 5m
 An easy-mode upgrade that inherits Server/Hubble entry types prints a short
 NodePort-default notice in NOTES; explicitly configured entry types are preserved.
 To adopt new defaults, use `--reset-values` with a reviewed values file retaining
-all settings your release needs. Older explicit helper images also remain under
+all settings your release needs.
+
+PD, Store and Server images built from this version run as UID/GID `10001`. The
+PD and Store pods get `fsGroup: 10001` (with `fsGroupChangePolicy: OnRootMismatch`)
+unless their `podSecurityContext` sets `fsGroup`, also when `--reuse-values` keeps
+an older release's empty value, so that user can write PVCs created by older
+images, which ran as root.
+
+Switch PD and Store to images from this version in the same rollout that first
+applies `fsGroup`, so the kubelet changes the volume ownership right before the
+`10001` image starts. Do not run images that still run as root with this chart
+first, for example the published `latest` before it moves to this version: files
+they create stay owned by root, and `OnRootMismatch` checks only the volume root,
+so it does not fix them later. Pin `pd.image` and `store.image` to a build from
+this version rather than relying on `latest`. A non-empty `image.digest` wins
+over `image.tag`, and `--reuse-values` keeps an existing digest, so a release
+pinned by digest must change the digest, not only the tag.
+
+If a release already ran root images with `fsGroup` set, roll out the first
+`10001` image together with a one-time recursive ownership change. Set the images
+in the same command, so the recursive change runs for the `10001` image rather
+than for a pinned root image. The example clears any reused digest so the tag
+applies; a release pinned by digest sets `pd.image.digest` and
+`store.image.digest` to the digests of this version's images instead:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set pd.image.tag=<this-version> \
+  --set store.image.tag=<this-version> \
+  --set-string pd.image.digest= \
+  --set-string store.image.digest= \
+  --set pd.podSecurityContext.fsGroupChangePolicy=Always \
+  --set store.podSecurityContext.fsGroupChangePolicy=Always \
+  --wait --timeout 15m
+```
+
+Before switching the policy back, check that every PD and Store Pod runs the
+`10001` image you set, not an older root image:
+
+```bash
+kubectl get pods -n hugegraph \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].image}{"\n"}{end}'
+```
+
+`--reuse-values` keeps `Always`, which walks the whole volume on every Pod
+start, so set the policy back once those Pods are running:
+
+```bash
+helm upgrade hugegraph ./helm/hugegraph -n hugegraph --reuse-values \
+  --set pd.podSecurityContext.fsGroupChangePolicy=OnRootMismatch \
+  --set store.podSecurityContext.fsGroupChangePolicy=OnRootMismatch \
+  --wait --timeout 15m
+```
+
+See [Storage and upgrades](docs/operations.md#storage-and-upgrades) for volumes
+the kubelet cannot change. Older explicit helper images also remain under
 value reuse; clear `store.waitImage` and `server.waitImage` to reuse component images.
 
 The admin Secret is an **initial credential**. Changing it alone does not rotate

@@ -377,6 +377,10 @@ docker build -f hugegraph-store/Dockerfile -t hugegraph/store:latest .
 ### Run Container
 
 ```bash
+# The image runs as UID 10001; a host data directory must be writable by it
+# (see docker/README.md, "Container user")
+mkdir -p /path/to/storage && sudo chown 10001:10001 /path/to/storage
+
 docker run -d \
   -p 8520:8520 \
   -p 8500:8500 \

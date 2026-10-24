@@ -527,7 +527,13 @@ runs:
       cp -R helm/hugegraph "$LEGACY_ROOT/chart"
       cp helm/hugegraph/testdata/values-pre-hardening.yaml "$LEGACY_ROOT/chart/values.yaml"
       helm template legacy "$LEGACY_ROOT/chart" > /dev/null
-      helm template legacy "$LEGACY_ROOT/chart" --is-upgrade > /dev/null
+      LEGACY_UPGRADE=$(helm template legacy "$LEGACY_ROOT/chart" --is-upgrade)
+      # The non-root PD and Store images need fsGroup on their data volumes
+      # even when the reused values predate that default.
+      [ "$(grep -c 'fsGroup: 10001' <<<"$LEGACY_UPGRADE")" -eq 2 ] || {
+        echo "PD and Store must keep fsGroup 10001 under --reuse-values"
+        exit 1
+      }
 
   - name: helm package
     shell: 'bash -e {0}'

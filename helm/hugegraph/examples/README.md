@@ -31,8 +31,10 @@ are `<volume-name>-<fullname>-<component>-<ordinal>`; Hubble uses
 `<fullname>-hubble-data`.
 
 On each indicated host, create these directories on disks with sufficient free
-space and make them writable by the UID/GID of the chosen images (published
-images currently run as root). Existing unrelated data must not be reused.
+space and make them writable by the UID/GID of the chosen images. PD, Store
+and Server images built from this version run as `10001:10001`, and the chart's
+PD and Store `fsGroup` default makes their directories writable; Hubble runs as
+the user of its own image. Existing unrelated data must not be reused.
 
 | Node | Directories | Required capacities |
 |---|---|---|
